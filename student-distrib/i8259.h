@@ -12,6 +12,15 @@
 #define MASTER_8259_PORT 0x20
 #define SLAVE_8259_PORT  0xA0
 
+/* Some additional useful ports */
+#define MASTER_8259_PORT_DATA 0x21
+#define SLAVE_8259_PORT_DATA 0xA1
+
+#define NUM_IRQS_PER_PIC 8
+#define SLAVE_IRQ_PIN_ON_MASTER 2
+
+#define IRQ_MAX 15
+
 /* Initialization control words to init each PIC.
  * See the Intel manuals for details on the meaning
  * of each word */

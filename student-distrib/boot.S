@@ -28,7 +28,7 @@ continue:
 	LGDT gdt_desc_ptr   #MarvelOS: Added instruction to load GDTR with GDT Data
 
 	#MarvelOS: Load the IDT
-	LIDT idt_desc_ptr	
+	#LIDT idt_desc_ptr	
 
 	# Load CS with the new descriptor value
 	ljmp    $KERNEL_CS, $keep_going

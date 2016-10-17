@@ -110,16 +110,8 @@ idt_desc_ptr:
 	.align  16
 idt:
 _idt:
-	.rept NUM_EXCEPTIONS
+	.rept NUM_VEC
 	.quad 0
 	.endr
-
-	.rept NUM_VEC - NUM_EXCEPTIONS
-	.quad 0
-	.endr
-
-idt_bottom:
 	
-#MarvelOS: formatting pointer to general exception handler
-exception_handler_desc:
-	.quad 0
+idt_bottom:

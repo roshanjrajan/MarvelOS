@@ -7,10 +7,13 @@
 #include "lib.h"
 #include "i8259.h"
 #include "debug.h"
+#include "idt_init.h"
+#include "paging.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+
 
 /* Check if MAGIC is valid and print the Multiboot information structure
    pointed by ADDR. */
@@ -19,8 +22,12 @@ entry (unsigned long magic, unsigned long addr)
 {
 	multiboot_info_t *mbi;
 
+
 	/* Clear the screen. */
 	clear();
+	
+	// Initialize IDT
+	init_idt();
 
 	/* Am I booted by a Multiboot-compliant boot loader? */
 	if (magic != MULTIBOOT_BOOTLOADER_MAGIC)
@@ -143,9 +150,19 @@ entry (unsigned long magic, unsigned long addr)
 		tss.esp0 = 0x800000;
 		ltr(KERNEL_TSS);
 	}
+	clear();
 
 	/* Init the PIC */
 	i8259_init();
+	
+	// Enable RTC chip stuff
+	RTC_init();
+
+	enable_irq(1);	//enable Keyboard interrrupts
+	enable_irq(2);  //enable interrupts from slave PIC
+	enable_irq(8);	//enable RTC interrupts
+
+	init_paging();
 
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
@@ -154,8 +171,18 @@ entry (unsigned long magic, unsigned long addr)
 	/* Do not enable the following until after you have set up your
 	 * IDT correctly otherwise QEMU will triple fault and simple close
 	 * without showing you any output */
-	/*printf("Enabling Interrupts\n");
-	sti();*/
+	
+	//printf("Enabling Interrupts\n");
+	sti();
+
+	//Divide Error
+	//int test_num = 1/0;
+
+	//Page Fault
+	//int* i = 0;
+	//printf("%d \n", *i);
+
+	// General Protection Fault
 
 	/* Execute the first program (`shell') ... */
 

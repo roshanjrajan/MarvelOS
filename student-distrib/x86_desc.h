@@ -23,7 +23,8 @@
 #define NUM_VEC 256
 
 /* MarvelOS: Additional constants */
- #define NUM_EXCEPTIONS 30
+ #define NUM_EXCEPTIONS 32
+ #define NUM_INTERRUPTS 16                                                                                                                                
 
 #ifndef ASM
 
