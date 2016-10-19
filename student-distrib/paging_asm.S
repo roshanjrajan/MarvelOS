@@ -2,6 +2,10 @@
 
 #define ASM     1
 
+#define MASK_B31 0x80000000
+#define MASK_B4  0x00000010
+#define PARAM_OFF 8
+
 .text
 
 .globl loadPageDirectory
@@ -20,7 +24,7 @@
 loadPageDirectory:
 	pushl %ebp
 	movl %esp, %ebp
-	movl 8(%esp), %eax
+	movl PARAM_OFF(%esp), %eax
 	movl %eax, %cr3
 	leave
 	ret
@@ -37,7 +41,7 @@ enablePaging:
 	pushl %ebp
 	movl %esp, %ebp
 	movl %cr0, %eax
-	orl $0x80000000, %eax
+	orl $MASK_B31, %eax
 	movl %eax, %cr0
 	leave
 	ret
@@ -54,7 +58,7 @@ enableMixedSizes:
 	pushl %ebp
 	movl %esp, %ebp
 	movl %cr4, %eax
-	orl $0x00000010, %eax
+	orl $MASK_B4, %eax
 	movl %eax, %cr4
 	leave
 	ret

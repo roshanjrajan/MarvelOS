@@ -158,11 +158,11 @@ entry (unsigned long magic, unsigned long addr)
 	// Enable RTC chip stuff
 	RTC_init();
 
-	enable_irq(1);	//enable Keyboard interrrupts
-	enable_irq(2);  //enable interrupts from slave PIC
-	enable_irq(8);	//enable RTC interrupts
+	//enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
+	//enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
+	//enable_irq(RTC_IRQ);		//enable RTC interrupts
 
-	init_paging();
+	init_paging();				// Separate paging initialization function
 
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
@@ -181,8 +181,6 @@ entry (unsigned long magic, unsigned long addr)
 	//Page Fault
 	//int* i = 0;
 	//printf("%d \n", *i);
-
-	// General Protection Fault
 
 	/* Execute the first program (`shell') ... */
 

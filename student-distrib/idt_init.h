@@ -6,6 +6,7 @@
 
 // GENERAL CONSTANTS
 #define KB_IRQ 1
+#define SLAVE_IRQ 2
 #define RTC_IRQ 8
 #define SCALL_LOC 0x80
 #define SIZE_SCODES 256
