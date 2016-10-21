@@ -1,0 +1,11 @@
+*/*.o
+*.o
+*/*.img
+student-distrib/bootimg
+*.sh
+student-distrib/Makefile.dep
+*.dep
+fsdir
+fsdir/*
+syscalls
+syscalls/*
