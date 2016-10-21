@@ -362,7 +362,7 @@ void KBhandler(){
  * OUTPUT: none.
  * SIDE_EFFECTS: RTC device will start producing periodic interrupts. 
  */
-void RTC_init(){
+/*void RTC_init(){
 	// Enable periodic interrupt (bit 6 in reg B)
 	outb(BIT8+RTC_B, RTC_PORT);
 	char prev = inb(RTC_DATA);
@@ -380,7 +380,7 @@ void RTC_init(){
 	// Read data from reg C
 	outb(RTC_C, RTC_PORT);
 	inb(RTC_DATA);
-}
+}*/
 
 /* 
  * RTChandler
@@ -390,7 +390,7 @@ void RTC_init(){
  * OUTPUT: none.
  * SIDE_EFFECTS: none.
  */
-void RTChandler(){
+/*void RTChandler(){
 	// As interrupt, save all general purpose registers
 	asm volatile ("pusha");
 	
@@ -403,7 +403,7 @@ void RTChandler(){
 	asm volatile ("popa");
 	asm volatile ("leave");
 	asm volatile ("iret");
-}
+}*/
 
 /* 
  * init_interrupts

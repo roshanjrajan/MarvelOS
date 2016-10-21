@@ -9,6 +9,7 @@
 #include "debug.h"
 #include "idt_init.h"
 #include "paging.h"
+#include "RTC.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -158,9 +159,9 @@ entry (unsigned long magic, unsigned long addr)
 	// Enable RTC chip stuff
 	RTC_init();
 
-	//enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
-	//enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
-	//enable_irq(RTC_IRQ);		//enable RTC interrupts
+	enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
+	enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
+	enable_irq(RTC_IRQ);		//enable RTC interrupts
 
 	init_paging();				// Separate paging initialization function
 
@@ -174,6 +175,12 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
+	printf("Initial Setup for RTC");
+	RTCWrite(1024);
+	RTCOpen();
+	RTCRead();
+	RTCClose();
+	printf("End Setup for RTC");
 
 	//Divide Error
 	//int test_num = 1/0;
