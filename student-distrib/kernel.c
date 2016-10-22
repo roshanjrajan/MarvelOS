@@ -176,12 +176,12 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
-	printf("Initial Setup for RTC");
-	RTCWrite(1024);
-	RTCOpen();
-	RTCRead();
-	RTCClose();
-	printf("End Setup for RTC");
+	//printf("Initial Setup for RTC");
+	//RTCWrite(1024);
+	//RTCOpen();
+	//RTCRead();
+	//RTCClose();
+	//printf("End Setup for RTC");
 
 	//Divide Error
 	//int test_num = 1/0;
