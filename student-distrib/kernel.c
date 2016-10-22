@@ -182,6 +182,9 @@ entry (unsigned long magic, unsigned long addr)
 	//RTCRead();
 	//RTCClose();
 	//printf("End Setup for RTC");
+	terminalOpen();
+	terminalWrite("hel\nlo", 6);
+	terminalClose();
 
 	//Divide Error
 	//int test_num = 1/0;
