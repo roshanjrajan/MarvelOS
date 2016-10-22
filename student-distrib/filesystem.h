@@ -6,19 +6,29 @@
 #include "multiboot.h"
 #include "lib.h"
 
+#define MAX_FILENAME_LENGTH 32
+#define FILESYSTEM_BLOCKSIZE 4096
+#define NUM_DATABLOCKS_PER_INODE 1023
+#define NUM_RESERVED_DENTRY 6
+#define NUM_RESERVED_BOOT_BLOCK 13
+#define MAX_NUM_DIRECTORY_ENTRIES 63
+
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define MAX(a,b) (((a)>(b))?(a):(b))
+
 
 typedef struct __attribute__((packed)) inode
 {
 	uint32_t length;
-	uint32_t dataBlocks[1023];
+	uint32_t dataBlocks[NUM_DATABLOCKS_PER_INODE];
 } inode_t;
 
 typedef struct __attribute__((packed)) dentry
 {
-	uint8_t fileName[32];
+	uint8_t fileName[MAX_FILENAME_LENGTH];
 	uint32_t fileType;
 	uint32_t inodeNum;
-	uint32_t reserved24[6];
+	uint32_t reserved24[NUM_RESERVED_DENTRY];
 	
 } dentry_t;
 
@@ -27,8 +37,8 @@ typedef struct __attribute__((packed)) boot_block
 	uint32_t numDirectories;
 	uint32_t numInodes;
 	uint32_t numDataBlocks;
-	uint32_t reserved52[13];
-	dentry_t fileDirectory[63];
+	uint32_t reserved52[NUM_RESERVED_BOOT_BLOCK];
+	dentry_t fileDirectory[MAX_NUM_DIRECTORY_ENTRIES];
 } boot_block_t; 
 
 boot_block_t* fileSysBootBlock;

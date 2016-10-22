@@ -1,37 +1,15 @@
 #include "filesystem.h"
 
-
+// Starting address of File System Image
 uint32_t bootMemAddr;
-
-
-
-// GENERAL HELPER FUNCTIONS
-#define MIN(a,b) (((a)<(b))?(a):(b))
-#define MAX(a,b) (((a)>(b))?(a):(b))
-
-
-/*
-* uint32_t strlenFile(const int8_t* s);
-*   Inputs: const int8_t* s = string to take length of (max is 31)
-*   Return Value: length of string s
-*	Function: return length of string s
-*/
-uint32_t
-strlenFile(const int8_t* s, uint32_t maxStrLen)
-{
-	register uint32_t len = 0;
-	while(s[len] != '\0' || len < maxStrLen)
-		len++;
-
-	return len;
-}
 
 /*
 * int8_t* strcpy(int8_t* dest, const int8_t* src)
 *   Inputs: int8_t* dest = destination string of copy
 *			const int8_t* src = source string of copy
+*			uint32_t maxStrLen max string length
 *   Return Value: pointer to dest
-*	Function: copy the source string into the destination string
+*	Function: copy the source string into the destination string (max length of maxStrLen)
 */
 
 int8_t*
@@ -54,10 +32,11 @@ strcpyFile(int8_t* dest, const int8_t* src, uint32_t maxStrLen)
 /* 
  * read_dentry_by_name
  *
- * DESCRIPTION: Parse through the dentry and check the file name
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
+ * DESCRIPTION: Parse through the File System directory and check the file name. Fill in dentry with file info
+ * INPUT: const uint8_t* fname = File Name to be searched
+ * 		  dentry_t* dentry = pointer to dentry to be written to 
+ * OUTPUT: returns -1 if file doesn't exist, else returns 0
+ * SIDE_EFFECTS: reads file name and fills in dentry parameter
  */
 int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 {
@@ -65,8 +44,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 	if (dentry == NULL) return -1;
 	for(i = 0; i < fileSysBootBlock->numDirectories; i++)
 	{
-		uint32_t fnameLength = strlenFile((int8_t *)fileSysBootBlock->fileDirectory[i].fileName, 32);
-		if(strncmp((int8_t *)fname, (int8_t *)fileSysBootBlock->fileDirectory[i].fileName, fnameLength) == 0)
+		if(strncmp((int8_t *)fname, (int8_t *)fileSysBootBlock->fileDirectory[i].fileName, MAX_FILENAME_LENGTH) == 0)
 		{
 				*dentry = fileSysBootBlock->fileDirectory[i];
 				return 0;
@@ -80,10 +58,11 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 /* 
  * read_dentry_by_name
  *
- * DESCRIPTION: Go to directory[index] and change something
- * INPUT: none.
+ * DESCRIPTION: Parse through the File System directory and check the index. Fill in dentry with file info
+ * INPUT: const uint32_t index = Index to be found
+ * 		  dentry_t* dentry = pointer to dentry to be written to 
  * OUTPUT: returns 0 if valid index, -1 for invalid index
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: reads file at index and fills in dentry parameter
  */ 
 int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
 {
@@ -103,9 +82,12 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
  * read_data
  *
  * DESCRIPTION: Parse through the dentry and check the file name
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
+ * INPUT: uint32_t inode = indoe number of file to be read
+ *		  uint32_t offset = offset in the file to be read
+ * 		  uint8_t* buf = buffer that is filled in with text
+ * 		  uint32_t length = length of data that needs to be filled into the buffer
+ * OUTPUT: returns -1 if buf is null, invalid inode, invalid offset else returns number of bytes copied
+ * SIDE_EFFECTS: 
  */
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
 {
@@ -114,15 +96,15 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 	if(inode >= fileSysBootBlock->numInodes || inode < 0)
 			return -1;
 		
-	inode_t fileInode = *((inode_t *)(bootMemAddr + 4096*(inode + 1)));
+	inode_t fileInode = *((inode_t *)(bootMemAddr + FILESYSTEM_BLOCKSIZE*(inode + 1)));
 	
 	if(offset < 0 || offset >= fileInode.length)
 		return -1;
 	
 	// Copy inode data
 	
-	uint32_t dataBlockIndex = offset/4096;
-	uint32_t dataBlockOffset = offset%4096;
+	uint32_t dataBlockIndex = offset/FILESYSTEM_BLOCKSIZE;
+	uint32_t dataBlockOffset = offset%FILESYSTEM_BLOCKSIZE;
 	uint32_t bytesCopied = 0;
 	uint32_t copyLength = MIN(length, fileInode.length);
 	
@@ -132,9 +114,9 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 	
 	while(bytesCopied < copyLength)
 	{
-		copy_start = bootMemAddr + 4096 * (fileSysBootBlock->numInodes + 1 + 
+		copy_start = bootMemAddr + FILESYSTEM_BLOCKSIZE * (fileSysBootBlock->numInodes + 1 + 
 			fileInode.dataBlocks[dataBlockIndex]) + dataBlockOffset;
-		copy_len = MIN((4096 - dataBlockOffset), copyLength - bytesCopied);
+		copy_len = MIN((FILESYSTEM_BLOCKSIZE - dataBlockOffset), copyLength - bytesCopied);
 		
 		memcpy((void *)(buf + bytesCopied), (void *)copy_start, copy_len);
 		
@@ -158,7 +140,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
  * DESCRIPTION: Initialize boot block information
  * INPUT: module representing start of the file system.
  * OUTPUT: none
- * SIDE_EFFECTS: All necessary info 
+ * SIDE_EFFECTS: All necessary info about the boot block is filled
  */
 void fileSysInit(module_t *mod)
 {
@@ -181,10 +163,12 @@ int32_t fileOpen(){
 /* 
  * fileRead
  *
- * DESCRIPTION: Write to the file 
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
+ * DESCRIPTION: Reads a file using the file name and fills in the buffer
+ * INPUT: const uint8_t* fname = file name of file to be read
+ * 		  uint8_t * buf = buffer to be filled
+ * 		  uint32_t length = length of file
+ * OUTPUT: returns -1 if bad file name, else returns bytes copied or errors from read_data
+ * SIDE_EFFECTS: Fills in buffer to be printed
  */
 int32_t fileRead(const uint8_t* fname, uint8_t * buf, uint32_t length){
 	// DO SOMETHING With NAME
@@ -229,7 +213,7 @@ int32_t fileClose(){
 
 
 /* 
- * fileOpen
+ * directoryOpen
  *
  * DESCRIPTION: Open nothing 
  * INPUT: none.
@@ -241,26 +225,27 @@ int32_t directoryOpen(){
 }
 
 /* 
- * fileRead
+ * directoryRead
  *
  * DESCRIPTION: Write to the file 
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
+ * INPUT: uint32_t index = file index of file to be read
+ * 		  uint8_t * buf = buffer to be filled
+ * OUTPUT: returns -1 if bad file index else fills in the buffer to be printed
+ * SIDE_EFFECTS: Prints out the directory entry associated with file
  */
 int32_t directoryRead(uint32_t index, uint8_t * buf){
-	// DO SOMETHING With NAME
+	
 	dentry_t dentry;
 	if(read_dentry_by_index (index, &dentry) != 0)
 		return -1; // BAD FILE NAME
 	
-	strcpyFile((int8_t *)buf, (int8_t *)(&dentry.fileName), 32);
+	strcpyFile((int8_t *)buf, (int8_t *)(&dentry.fileName), MAX_FILENAME_LENGTH);
 	
 	return 0;
 }
 
 /*  
- * fileWrite
+ * directoryWrite
  *
  * DESCRIPTION: Write to the file 
  * INPUT: none.
@@ -273,7 +258,7 @@ int32_t directoryWrite(){
 
 
 /* 
- * fileClose
+ * directoryClose
  *
  * DESCRIPTION: Write to the file 
  * INPUT: none.
@@ -289,7 +274,7 @@ int32_t directoryClose(){
 // TEST FUNCTIONS FOR CODE
 void testDirRead()
 {
-	uint32_t length = 32;
+	uint32_t length = MAX_FILENAME_LENGTH;
 	uint8_t buf[length + 1];
 	
 	int i = 0;
@@ -303,10 +288,11 @@ void testDirRead()
 }
 
 void testFileRead() {
-	uint8_t fname[12] = "frame0.txt\0";
-	uint8_t buf[4096];
+	//uint8_t* fname = "frame1.txt\0";
+	uint8_t* fname = "verylargetextwithverylongname.txt";
+	uint8_t buf[FILESYSTEM_BLOCKSIZE];
 	
-	fileRead(fname, buf, 200);
+	fileRead(fname, buf, FILESYSTEM_BLOCKSIZE);
 	
 	printf((int8_t *)buf);
 }
