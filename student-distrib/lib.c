@@ -7,10 +7,82 @@
 #define NUM_COLS 80
 #define NUM_ROWS 25
 #define ATTRIB 0x7
+#define VGA_ADDRESS 0x3d4
+#define VGA_DATA 0x3d5
+#define HI8 0xff
+#define CURS_HI 0x0e
+#define CURS_LO 0x0f
+#define BYTE_SHIFT 8
 
 static int screen_x;
 static int screen_y;
 static char* video_mem = (char *)VIDEO;
+
+/*
+*   set_cursor
+*   Inputs: int x, int y specify desired location of vga curson
+*   Return Value: none
+*	Function: moves vga cursor to desired location on screen
+*/
+void set_cursor(int x, int y){
+	uint16_t pos = y*NUM_COLS + x;
+	
+	// Writing low portion
+	outb(CURS_LO, VGA_ADDRESS);
+	outb((uint8_t)(pos&HI8), VGA_DATA);
+	
+	// Writing high portion
+	outb(CURS_HI, VGA_ADDRESS);
+	outb((uint8_t)((pos>>BYTE_SHIFT)&HI8), VGA_DATA);
+}
+
+/*
+*   text_shift_up
+*   Inputs: void
+*   Return Value: none
+*	Function: shift all lines in the display up and clear the bottom line
+*/
+void text_shift_up(){
+	//Shifting video memory
+	memmove((void *)video_mem, (void *)video_mem + (NUM_COLS << 1), ((NUM_COLS*(NUM_ROWS-1))<<1));
+	
+	//Clearing bottom row
+	int i;
+	for(i=NUM_COLS-1; i>=0; i--){
+		*(uint8_t *)(video_mem + ((i+NUM_COLS*(NUM_ROWS-1)) << 1)) = ' ';
+	}
+}
+
+/*
+*   erase_char
+*   Inputs: void
+*   Return Value: none
+*	Function: erase the most recent character on the screen
+*/
+void erase_char(){
+	back_char();
+	putc(' ');
+	back_char();
+}
+
+/*
+*   back_char
+*   Inputs: void
+*   Return Value: none
+*	Function: moves current put location back by one
+*/
+void back_char(){
+	if(screen_x == 0){	// Need to change rows
+		if(screen_y == 0){
+			return;	// Already at top left corner
+		}
+		screen_y--;
+		screen_x = NUM_COLS-1;
+		return;
+	}
+	screen_x--;
+	set_cursor(screen_x, screen_y);
+}
 
 /*
 * void clear(void);
@@ -28,6 +100,7 @@ clear(void)
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
+	set_cursor(screen_x, screen_y);
 }
 
 /* Standard printf().
@@ -196,8 +269,15 @@ putc(uint8_t c)
         *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) = ATTRIB;
         screen_x++;
         screen_x %= NUM_COLS;
-        screen_y = (screen_y + (screen_x / NUM_COLS)) % NUM_ROWS;
+		if(screen_x == 0){	// Need to move down a line
+			screen_y++;
+		}
     }
+	if(screen_y >= NUM_ROWS){	// Need to shift up
+		text_shift_up();
+		screen_y--;
+	}
+	set_cursor(screen_x, screen_y);
 }
 
 /*

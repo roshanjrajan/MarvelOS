@@ -10,8 +10,9 @@ volatile int RTC_read_flag = 0;	// Flag used during RTC reading
  * OUTPUT: 0 - succes, -1 - failure
  * SIDE_EFFECTS: RTC device will produce periodic interrupts at 2Hz. 
  */
-int32_t RTCOpen(){
-	return RTCWrite(INIT_FREQ);	// Default 2Hz
+int32_t RTCOpen(const uint8_t* filename){
+	uint32_t freq = INIT_FREQ;
+	return RTCWrite(0, &freq, 0);	// Default 2Hz
 }
 
 /* 
@@ -22,7 +23,7 @@ int32_t RTCOpen(){
  * OUTPUT: 0 on success
  * SIDE_EFFECTS: 
  */
-int32_t RTCRead(){
+int32_t RTCRead(int32_t fd, void* buf, int32_t nbytes){
 	RTC_read_flag = 1;
 	while(RTC_read_flag)
 		;
@@ -37,7 +38,8 @@ int32_t RTCRead(){
  * OUTPUT: 0 on succes, -1 on failure
  * SIDE_EFFECTS: RTC device will start producing periodic interrupts at specified frequency(if valid). 
  */
-int32_t RTCWrite(int32_t freq){
+int32_t RTCWrite(int32_t fd, const void* buf, int32_t nbytes){
+	uint32_t freq = *(uint32_t*)buf;
 	if(freq >=MIN_FREQ && freq <= MAX_FREQ){
 		int bitFlag = 0;
 		uint32_t i;
@@ -76,7 +78,7 @@ int32_t RTCWrite(int32_t freq){
  * OUTPUT: returns 0
  * SIDE_EFFECTS: none. 
  */
-int32_t RTCClose(){
+int32_t RTCClose(int32_t fd){
 	return 0;
 }
 

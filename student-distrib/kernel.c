@@ -162,7 +162,7 @@ entry (unsigned long magic, unsigned long addr)
 
 	enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
 	enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
-	enable_irq(RTC_IRQ);		//enable RTC interrupts
+	//enable_irq(RTC_IRQ);		//enable RTC interrupts
 
 	init_paging();				// Separate paging initialization function
 
@@ -176,15 +176,26 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
-	//printf("Initial Setup for RTC");
+	
 	//RTCWrite(1024);
 	//RTCOpen();
 	//RTCRead();
 	//RTCClose();
-	//printf("End Setup for RTC");
-	terminalOpen();
-	terminalWrite("hel\nlo", 6);
-	terminalClose();
+
+	
+	//terminalOpen();
+	//int i;
+	//for(i=0; i<25; i++)
+	//	terminalWrite("a\n", 2);
+	//terminalWrite("b\n", 2);
+	//terminalClose();
+	terminalOpen(NULL);
+	terminalWrite(0, "SSN: ", 5);
+	char buf[128];
+	int read;
+	read = terminalRead(0, buf, 128);
+	clear();
+	terminalWrite(0, buf, read);
 
 	//Divide Error
 	//int test_num = 1/0;
