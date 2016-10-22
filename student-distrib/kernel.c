@@ -10,6 +10,7 @@
 #include "idt_init.h"
 #include "paging.h"
 #include "RTC.h"
+#include "filesystem.h"
 
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
@@ -68,6 +69,11 @@ entry (unsigned long magic, unsigned long addr)
 				printf("0x%x ", *((char*)(mod->mod_start+i)));
 			}
 			printf("\n");
+			
+			//Initialize the directory
+			if(mod->string == FILE_SYSTEM_STRING)
+				fileSysInit(mod);
+			
 			mod_count++;
 			mod++;
 		}
@@ -151,6 +157,8 @@ entry (unsigned long magic, unsigned long addr)
 		tss.esp0 = 0x800000;
 		ltr(KERNEL_TSS);
 	}
+	//while(1);
+	
 	clear();
 
 	/* Init the PIC */
@@ -160,8 +168,8 @@ entry (unsigned long magic, unsigned long addr)
 	RTC_init();
 
 	enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
-	enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
-	enable_irq(RTC_IRQ);		//enable RTC interrupts
+	//enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
+	//enable_irq(RTC_IRQ);		//enable RTC interrupts
 
 	init_paging();				// Separate paging initialization function
 
@@ -175,13 +183,20 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
-	printf("Initial Setup for RTC");
-	RTCWrite(1024);
-	RTCOpen();
-	RTCRead();
-	RTCClose();
-	printf("End Setup for RTC");
-
+	//printf("Initial Setup for RTC");
+	//RTCWrite(1024);
+	//RTCOpen();
+	//RTCRead();
+	//RTCClose();
+	//printf("End Setup for RTC");
+	
+	
+	// Read Directory
+	//testDirRead();
+	testFileRead();
+	
+	
+	
 	//Divide Error
 	//int test_num = 1/0;
 
