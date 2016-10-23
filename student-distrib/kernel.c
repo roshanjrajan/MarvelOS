@@ -12,6 +12,7 @@
 #include "RTC.h"
 #include "filesystem.h"
 
+// Random Comment
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
@@ -183,20 +184,35 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
-	//printf("Initial Setup for RTC");
+	
+	// RTC TESTING STUFF ------------------
 	//RTCWrite(1024);
 	//RTCOpen();
 	//RTCRead();
 	//RTCClose();
-	//printf("End Setup for RTC");
 	
 	
+	// FILE SYSTEM TESTING STUFF ----------
 	// Read Directory
 	//testDirRead();
 	testFileRead();
+			
 	
-	
-	
+	// TERMINAL TESTING STUFF ----------
+	//terminalOpen();
+	//int i;
+	//for(i=0; i<25; i++)
+	//	terminalWrite("a\n", 2);
+	//terminalWrite("b\n", 2);
+	//terminalClose();
+	terminalOpen(NULL);
+	terminalWrite(0, "SSN: ", 5);
+	char buf[128];
+	int read;
+	read = terminalRead(0, buf, 128);
+	clear();
+	terminalWrite(0, buf, read);
+
 	//Divide Error
 	//int test_num = 1/0;
 
