@@ -189,6 +189,7 @@ entry (unsigned long magic, unsigned long addr)
 	//	terminalWrite("a\n", 2);
 	//terminalWrite("b\n", 2);
 	//terminalClose();
+	
 	terminalOpen(NULL);
 	terminalWrite(0, "SSN: ", 5);
 	char buf[128];
