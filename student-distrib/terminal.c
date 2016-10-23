@@ -46,7 +46,7 @@ int readReady;
  * Handler for keyboard input.
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: Prints typed character to the screen. 
+ * SIDE_EFFECTS: Prints typed character to the screen and populates the input buffer. 
  */
 void KBhandler(){
 	// As interrupt, save all general purpose registers
@@ -78,10 +78,10 @@ void KBhandler(){
 		// Ctrl-L means clear display and input buffer
 		if(scode == CLEAR){
 			clear();
-			while(buf_loc > 0){
-				buf_loc--;
-				KBbuf[buf_loc] = 0;
-			}
+			// Write things that are currently in the buffer
+			int i = 0;
+			for(i=0; i<buf_loc; i++)
+				putc(KBbuf[i]);
 		}
 	}
 	
@@ -150,12 +150,13 @@ void KBhandler(){
 /*
  * terminalOpen
  * DESCRIPTION: Called when we want to start using terminal. 
- * INPUT: none.
+ * INPUT: filename - ignored. 
  * OUTPUT: 0 on success. 
- * SIDE_EFFECTS: clears input buffer. 
+ * SIDE_EFFECTS: clears input buffer and terminal driver flags. 
  */
 extern int32_t terminalOpen(const uint8_t* filename){
 	int i;
+	// Clearing flags
 	capsFlag = 0;
 	shiftFlagL = 0;
 	shiftFlagR = 0;
@@ -173,9 +174,9 @@ extern int32_t terminalOpen(const uint8_t* filename){
 
 /*
  * terminalClose
- * DESCRIPTION: none.
- * INPUT: none.
- * OUTPUT: none.
+ * DESCRIPTION: Called when we are done with terminal. 
+ * INPUT: fd - ignored. 
+ * OUTPUT: 0 on success. 
  * SIDE_EFFECTS: none. 
  */
 extern int32_t terminalClose(int32_t fd){
@@ -184,10 +185,12 @@ extern int32_t terminalClose(int32_t fd){
 
 /*
  * terminalRead
- * DESCRIPTION: none.
- * INPUT: none.
+ * DESCRIPTION: Reads one line from the input buffer. 
+ * INPUT: 	fd - ignored
+			buf - buffer to read into
+			nbytes - size of buffer
  * OUTPUT: none.
- * SIDE_EFFECTS: none. 
+ * SIDE_EFFECTS: reads one line into the specified buffer, but reads less if the buffer gets filled
  */
 extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
 	readWaiting = 1;
@@ -195,6 +198,8 @@ extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
 		;
 	}
 	int bytes;
+	uint32_t flags;
+	cli_and_save(flags);
 	for(bytes = 0; bytes<nbytes; bytes++){
 		((char *)buf)[bytes] = KBbuf[bytes];
 		if(((char *)buf)[bytes] == '\n'){
@@ -202,13 +207,17 @@ extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
 			break;
 		}
 	}
+	restore_flags(flags);
+	readWaiting = 0;
 	return bytes;
 }
 
 /*
  * terminalWrite
  * DESCRIPTION: none.
- * INPUT: none.
+ * INPUT: 	fd - ignored
+			buf - buffer to write from
+			nbytes - bytes to write
  * OUTPUT: none.
  * SIDE_EFFECTS: none. 
  */
