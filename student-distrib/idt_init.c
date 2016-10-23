@@ -1,26 +1,6 @@
 #include "idt_init.h"
 
-/*
- * ASCII scan codes for keyboard usage 
- */
-static char ascii_scan[SIZE_SCODES] = {
-	0, 0, '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '-', '=', 0, 0,
-	'q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p', '[', ']', 0, 0, 'a', 's',
-	'd', 'f', 'g', 'h', 'j', 'k', 'l', ';', '\'', '`', 0, '\\', 'z', 'x', 'c', 'v',
-	'b', 'n', 'm', ',', '.', '/', 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
-	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-};
+
 
 /*
  * eh0
@@ -31,7 +11,6 @@ static char ascii_scan[SIZE_SCODES] = {
  * SIDE_EFFECTS: none.
  */
 void eh0(){
-	cli();
 	printf("EXCEPTION: DIVIDE ERROR");
 	while(1);
 }
@@ -45,7 +24,6 @@ void eh0(){
  * SIDE_EFFECTS: none.
  */
 void eh2(){
-	cli();
 	printf("EXCEPTION: NMI INTERRUPT");
 	while(1);
 }
@@ -59,7 +37,6 @@ void eh2(){
  * SIDE_EFFECTS: none.
  */
 void eh3(){
-	cli();
 	printf("EXCEPTION: BREAKPOINT");
 	while(1);//
 }
@@ -73,7 +50,6 @@ void eh3(){
  * SIDE_EFFECTS: none.
  */
 void eh4(){
-	cli();
 	printf("EXCEPTION: OVERFLOW");
 	while(1);
 }
@@ -87,7 +63,6 @@ void eh4(){
  * SIDE_EFFECTS: none.
  */
 void eh5(){
-	cli();
 	printf("EXCEPTION: BOUND RANGE EXCEEDED");
 	while(1);
 }
@@ -101,7 +76,6 @@ void eh5(){
  * SIDE_EFFECTS: none.
  */
 void eh6(){
-	cli();
 	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE");
 	while(1);
 }
@@ -115,7 +89,6 @@ void eh6(){
  * SIDE_EFFECTS: none.
  */
 void eh7(){
-	cli();
 	printf("EXCEPTION: DEVICE NOT AVAILABLE");
 	while(1);
 }
@@ -128,7 +101,6 @@ void eh7(){
  * SIDE_EFFECTS: none.
  */
 void eh8(){
-	cli();
 	printf("EXCEPTION: DOUBLE FAULT");
 	while(1);
 }
@@ -142,7 +114,6 @@ void eh8(){
  * SIDE_EFFECTS: none.
  */
 void eh9(){
-	cli();
 	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN");
 	while(1);
 }
@@ -156,7 +127,6 @@ void eh9(){
  * SIDE_EFFECTS: none.
  */
 void eh10(){
-	cli();
 	printf("EXCEPTION: INVALID TSS");
 	while(1);
 }
@@ -170,7 +140,6 @@ void eh10(){
  * SIDE_EFFECTS: none.
  */
 void eh11(){
-	cli();
 	printf("EXCEPTION: SEGMENT NOT PRESENT");
 	while(1);
 }
@@ -184,7 +153,6 @@ void eh11(){
  * SIDE_EFFECTS: none.
  */
 void eh12(){
-	cli();
 	printf("EXCEPTION: STACK SEGMENT FAULT");
 	while(1);
 }
@@ -198,7 +166,6 @@ void eh12(){
  * SIDE_EFFECTS: none.
  */
 void eh13(){
-	cli();
 	printf("EXCEPTION: GENERAL PROTECTION");
 	while(1);
 }
@@ -212,7 +179,6 @@ void eh13(){
  * SIDE_EFFECTS: none.
  */
 void eh14(){
-	cli();
 	printf("EXCEPTION: PAGE FAULT");
 	while(1);
 }
@@ -226,7 +192,6 @@ void eh14(){
  * SIDE_EFFECTS: none.
  */
 void eh16(){
-	cli();
 	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR");
 	while(1);
 }
@@ -240,7 +205,6 @@ void eh16(){
  * SIDE_EFFECTS: none.
  */
 void eh17(){
-	cli();
 	printf("EXCEPTION: ALIGNMENT CHECK");
 	while(1);
 }
@@ -253,7 +217,6 @@ void eh17(){
  * SIDE_EFFECTS: none.
  */
 void eh18(){
-	cli();
 	printf("EXCEPTION: MACHINE CHECK");	
 	while(1);
 }
@@ -266,7 +229,6 @@ void eh18(){
  * SIDE_EFFECTS: none.
  */
 void eh19(){
-	cli();
 	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION");
 	while(1);
 }
@@ -287,7 +249,7 @@ void init_exceptions(){
 		if(i != RESERVED_1 && i<RESERVED_20 && i != RESERVED_15){
 			idt[i].seg_selector = KERNEL_CS;
 			idt[i].reserved4 = 0;
-			idt[i].reserved3 = 1;
+			idt[i].reserved3 = 0;
 			idt[i].reserved2 = 1;
 			idt[i].reserved1 = 1;
 			idt[i].size = 1;
@@ -297,7 +259,7 @@ void init_exceptions(){
 		}else{
 			idt[i].seg_selector = KERNEL_CS;
 			idt[i].reserved4 = 0;
-			idt[i].reserved3 = 1;
+			idt[i].reserved3 = 0;
 			idt[i].reserved2 = 1;
 			idt[i].reserved1 = 1;
 			idt[i].size = 1;
@@ -335,7 +297,7 @@ void init_exceptions(){
  * OUTPUT: none.
  * SIDE_EFFECTS: Prints typed character to the screen. 
  */
-void KBhandler(){
+/*void KBhandler(){
 	// As interrupt, save all general purpose registers
 	asm volatile ("pusha");
 	
@@ -352,7 +314,7 @@ void KBhandler(){
 	asm volatile ("popa");
 	asm volatile ("leave");
 	asm volatile ("iret");
-}
+}*/
 
 /* 
  * RTC_init
@@ -419,7 +381,7 @@ void init_interrupts(){
 	for(i=NUM_EXCEPTIONS; i<NUM_INTERRUPTS+NUM_EXCEPTIONS; i++){
 		idt[i].seg_selector = KERNEL_CS;
 		idt[i].reserved4 = 0;
-		idt[i].reserved3 = 0;
+		idt[i].reserved3 = 1;
 		idt[i].reserved2 = 1;
 		idt[i].reserved1 = 1;
 		idt[i].size = 1;
@@ -447,7 +409,6 @@ void init_interrupts(){
  */
 void syscall(){
 	/* TODO */
-	cli();
 	printf("System Call Handler not yet implemented!");
 	while(1);
 }
@@ -463,7 +424,7 @@ void init_syscall(){
 	// enter data for single system call entry in IDT
 	idt[SCALL_LOC].seg_selector = KERNEL_CS;
 	idt[SCALL_LOC].reserved4 = 0;
-	idt[SCALL_LOC].reserved3 = 1;
+	idt[SCALL_LOC].reserved3 = 0;
 	idt[SCALL_LOC].reserved2 = 1;
 	idt[SCALL_LOC].reserved1 = 1;
 	idt[SCALL_LOC].size = 1;

@@ -21,10 +21,10 @@
 #define BIT8 0x80
 
 
-extern int32_t RTCOpen();
-extern int32_t RTCRead();
-extern int32_t RTCWrite(int32_t freq);
-extern int32_t RTCClose();
+extern int32_t RTCOpen(const uint8_t* filename);
+extern int32_t RTCRead(int32_t fd, void* buf, int32_t nbytes);
+extern int32_t RTCWrite(int32_t fd, const void* buf, int32_t nbytes);
+extern int32_t RTCClose(int32_t fd);
 extern void RTC_init();
 extern void RTChandler();
 
