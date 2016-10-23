@@ -3,6 +3,24 @@
 // Starting address of File System Image
 uint32_t bootMemAddr;
 
+
+/*
+* uint32_t strlen(const int8_t* s);
+*   Inputs: const int8_t* s = string to take length of
+*   Return Value: length of string s
+*	Function: return length of string s
+*/
+
+uint32_t
+strlenFile(const int8_t* s, uint32_t maxStrLen)
+{
+	register uint32_t len = 0;
+	while(s[len] != '\0'&& len < maxStrLen)
+		len++;
+
+	return len;
+}
+
 /*
 * int8_t* strcpy(int8_t* dest, const int8_t* src)
 *   Inputs: int8_t* dest = destination string of copy
@@ -16,7 +34,7 @@ int8_t*
 strcpyFile(int8_t* dest, const int8_t* src, uint32_t maxStrLen)
 {
 	int32_t i=0;
-	while(src[i] != '\0' || i < maxStrLen) {
+	while(src[i] != '\0' && i < maxStrLen) {
 		dest[i] = src[i];
 		i++;
 	}
@@ -170,14 +188,14 @@ int32_t fileOpen(){
  * OUTPUT: returns -1 if bad file name, else returns bytes copied or errors from read_data
  * SIDE_EFFECTS: Fills in buffer to be printed
  */
-int32_t fileRead(const uint8_t* fname, uint8_t * buf, uint32_t length){
+int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes){
 	// DO SOMETHING With NAME
 	dentry_t dentry;
 	
 	if(read_dentry_by_name (fname, &dentry) != 0)
 		return -1; // BAD FILE NAME
 	
-	return read_data (dentry.inodeNum, 0, buf, length);
+	return read_data (dentry.inodeNum, 0, buf, nbytes);
 }
 
 /* 
@@ -233,13 +251,21 @@ int32_t directoryOpen(){
  * OUTPUT: returns -1 if bad file index else fills in the buffer to be printed
  * SIDE_EFFECTS: Prints out the directory entry associated with file
  */
-int32_t directoryRead(uint32_t index, uint8_t * buf){
+int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
 	
-	dentry_t dentry;
-	if(read_dentry_by_index (index, &dentry) != 0)
-		return -1; // BAD FILE NAME
-	
-	strcpyFile((int8_t *)buf, (int8_t *)(&dentry.fileName), MAX_FILENAME_LENGTH);
+	int index;
+	for(index = 0; index < fileSysBootBlock->numDirectories; index++)
+	{
+		dentry_t dentry;
+		if(read_dentry_by_index (index, &dentry) != 0)
+			return -1; // Done with all of them
+		
+		strcpyFile((int8_t *)buf, (int8_t *)(&dentry.fileName), MAX_FILENAME_LENGTH);
+		
+		uint32_t bufLength = strlenFile((int8_t *)buf, MAX_FILENAME_LENGTH);
+		terminalWrite(0, (void *)buf, (int32_t)bufLength);
+		terminalWrite(0, (void *)"\n", 1);
+	}
 	
 	return 0;
 }
@@ -275,26 +301,19 @@ int32_t directoryClose(){
 void testDirRead()
 {
 	uint32_t length = MAX_FILENAME_LENGTH;
-	uint8_t buf[length + 1];
+	uint8_t buf[length];
 	
-	int i = 0;
-	while(directoryRead(i, buf) == 0)
-	{
-		buf[length] = '\0';
-		printf((int8_t *)buf);
-		printf("\n");
-		i++;
-	}	
+	directoryRead(0, (void *) buf, (int32_t) length);
 }
 
 void testFileRead() {
-	//uint8_t* fname = "frame1.txt\0";
-	uint8_t* fname = "verylargetextwithverylongname.txt";
+	uint8_t* fname = (uint8_t *)"frame1.txt\0";
+	//uint8_t* fname = "verylargetextwithverylongname.txt";
 	uint8_t buf[FILESYSTEM_BLOCKSIZE];
 	
-	fileRead(fname, buf, FILESYSTEM_BLOCKSIZE);
+	int32_t bufLength = fileRead(fname, buf, FILESYSTEM_BLOCKSIZE);
 	
-	printf((int8_t *)buf);
+	terminalWrite(0, (void *)buf, bufLength);
 }
 
 

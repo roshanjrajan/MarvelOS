@@ -5,6 +5,7 @@
 #include "types.h"
 #include "multiboot.h"
 #include "lib.h"
+#include "terminal.h"
 
 #define MAX_FILENAME_LENGTH 32
 #define FILESYSTEM_BLOCKSIZE 4096
@@ -45,12 +46,12 @@ boot_block_t* fileSysBootBlock;
 
 extern void fileSysInit(module_t* mod);
 extern int32_t fileOpen();
-extern int32_t fileRead(const uint8_t* fname, uint8_t * buf, uint32_t length);
+extern int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes);
 extern int32_t fileWrite();
 extern int32_t fileClose();
 
 extern int32_t directoryOpen();
-extern int32_t directoryRead(uint32_t index, uint8_t * buf);
+extern int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes);
 extern int32_t directoryWrite();
 extern int32_t directoryClose();
 
