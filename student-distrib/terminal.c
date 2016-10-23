@@ -193,12 +193,14 @@ extern int32_t terminalClose(int32_t fd){
  * SIDE_EFFECTS: reads one line into the specified buffer, but reads less if the buffer gets filled
  */
 extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
+	if(nbytes < 0)
+		return -1;
 	readWaiting = 1;
 	while(!readReady){
 		;
 	}
 	int bytes;
-	uint32_t flags;
+	int flags;
 	cli_and_save(flags);
 	for(bytes = 0; bytes<nbytes; bytes++){
 		((char *)buf)[bytes] = KBbuf[bytes];
@@ -207,8 +209,11 @@ extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
 			break;
 		}
 	}
-	restore_flags(flags);
+	memset(KBbuf, 0, BUF_SIZE);
+	readReady = 0;
 	readWaiting = 0;
+	buf_loc = 0;
+	restore_flags(flags);
 	return bytes;
 }
 

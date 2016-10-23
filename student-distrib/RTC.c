@@ -1,6 +1,7 @@
 #include "RTC.h"
 
 volatile int RTC_read_flag = 0;	// Flag used during RTC reading
+volatile int RTC_testing = 0;
 
 /* 
  * RTCOpen
@@ -125,11 +126,20 @@ void RTChandler(){
 	outb(RTC_C, RTC_PORT);
 	inb(RTC_DATA);
 	RTC_read_flag = 0;
-	test_interrupts();
+	if(RTC_testing)
+		putc('1');
 	send_eoi(RTC_IRQ);
 	
 	// restore general purpose register, return	
 	asm volatile ("popa");
 	asm volatile ("leave");
 	asm volatile ("iret");
+}
+
+void startRTCTest(){
+	RTC_testing = 1;
+}
+
+void stopRTCTest(){
+	RTC_testing = 0;
 }

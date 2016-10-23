@@ -1,6 +1,6 @@
 
-#ifndef FILESYSTEM
-#define FILESYSTEM
+#ifndef FILESYSTEM_H
+#define FILESYSTEM_H
  
 #include "types.h"
 #include "multiboot.h"
@@ -13,6 +13,9 @@
 #define NUM_RESERVED_DENTRY 6
 #define NUM_RESERVED_BOOT_BLOCK 13
 #define MAX_NUM_DIRECTORY_ENTRIES 63
+#define FILESYSTEM_DIRECTORIES 17
+#define BUFFER_TEST_SIZE 1500
+#define FNAME_L 12
 
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
@@ -47,6 +50,7 @@ boot_block_t* fileSysBootBlock;
 extern void fileSysInit(module_t* mod);
 extern int32_t fileOpen();
 extern int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes);
+extern int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes);
 extern int32_t fileWrite();
 extern int32_t fileClose();
 
@@ -60,6 +64,7 @@ extern int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry);
 extern int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length);
 
 extern void testDirRead();
-extern void testFileRead();
+extern void testFileRead(uint8_t * fname);
+extern void testFileIndex(uint32_t index);
 
 #endif

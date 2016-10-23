@@ -16,6 +16,10 @@
 /* Macros. */
 /* Check if the bit BIT in FLAGS is set. */
 #define CHECK_FLAG(flags,bit)   ((flags) & (1 << (bit)))
+#define TEST_BUF_SIZE 128
+#define TWICE 2
+#define FREQ_TEST_MAX 1024
+#define FREQ_TEST_START 2
 
 
 /* Check if MAGIC is valid and print the Multiboot information structure
@@ -169,8 +173,8 @@ entry (unsigned long magic, unsigned long addr)
 	RTC_init();
 
 	enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
-	//enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
-	//enable_irq(RTC_IRQ);		//enable RTC interrupts
+	enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
+	enable_irq(RTC_IRQ);		//enable RTC interrupts
 
 	init_paging();				// Separate paging initialization function
 
@@ -185,6 +189,124 @@ entry (unsigned long magic, unsigned long addr)
 	//printf("Enabling Interrupts\n");
 	sti();
 	
+	
+	// TESTING Mp3 Checkpoint 2
+	terminalOpen(NULL);
+	int8_t * string = "Press ENTER to begin tests\n";
+	terminalWrite(0, string, strlen(string));
+	char buf[TEST_BUF_SIZE];
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// Testing Terminal Read
+	clear();
+	string = "SSN: ";
+	terminalWrite(0, string, strlen(string));
+	int read;
+	read = terminalRead(0, buf, TEST_BUF_SIZE);
+	clear();
+	string = "You entered: ";
+	terminalWrite(0, string, strlen(string));
+	terminalWrite(0, buf, read);
+	string = "\nPress ENTER to continue\n";
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// Directory read
+	clear();
+	testDirRead();
+	string = "\nPress ENTER to continue\n";
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	
+	// File name reads
+	clear();
+	testFileRead((uint8_t *)"frame0.txt");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)".");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"sigtest");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"shell");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"grep");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"syserr");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"rtc");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"fish");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"counter");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"pingpong");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	clear();
+	testFileRead((uint8_t *)"cat");
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// Index reads
+	int i = 0;
+	for(i = 0; i < FILESYSTEM_DIRECTORIES; i++)
+	{
+		clear();
+		testFileIndex((uint32_t)i);
+		terminalWrite(0, string, strlen(string));
+		terminalRead(0, buf, TEST_BUF_SIZE);
+	}
+	
+	
+	string = "Press ENTER to speed up\n";
+	RTCOpen(NULL);
+	clear();
+	startRTCTest();
+	terminalWrite(0, string, strlen(string));
+	terminalRead(0, buf, TEST_BUF_SIZE);
+	int freq = FREQ_TEST_START;
+	
+	for(freq *= TWICE; freq <= FREQ_TEST_MAX; freq*=TWICE){
+		clear();
+		RTCWrite(0, &freq, sizeof(int));
+		terminalWrite(0, string, strlen(string));
+		terminalRead(0, buf, TEST_BUF_SIZE);
+	}
+
+	stopRTCTest();
+	clear();
+	string = "Tests complete";
+	terminalWrite(0, string, strlen(string));
+	
+	
 	// RTC TESTING STUFF ------------------
 	//RTCWrite(1024);
 	//RTCOpen();
@@ -194,7 +316,7 @@ entry (unsigned long magic, unsigned long addr)
 	
 	// FILE SYSTEM TESTING STUFF ----------
 	// Read Directory
-	testDirRead();
+	//testDirRead();
 	//testFileRead();
 			
 	
@@ -206,13 +328,13 @@ entry (unsigned long magic, unsigned long addr)
 	//terminalWrite("b\n", 2);
 	//terminalClose();
 	
-	terminalOpen(NULL);
-	terminalWrite(0, "SSN: ", 5);
-	char buf[128];
-	int read;
-	read = terminalRead(0, buf, 128);
-	clear();
-	terminalWrite(0, buf, read);
+	//terminalOpen(NULL);
+	//terminalWrite(0, "SSN: ", 5);
+	//char buf[128];
+	//int read;
+	//read = terminalRead(0, buf, 128);
+	//clear();
+	//terminalWrite(0, buf, read);
 
 	//Divide Error
 	//int test_num = 1/0;

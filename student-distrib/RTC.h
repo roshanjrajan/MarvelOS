@@ -27,5 +27,7 @@ extern int32_t RTCWrite(int32_t fd, const void* buf, int32_t nbytes);
 extern int32_t RTCClose(int32_t fd);
 extern void RTC_init();
 extern void RTChandler();
+extern void startRTCTest();
+extern void stopRTCTest();
 
 #endif
