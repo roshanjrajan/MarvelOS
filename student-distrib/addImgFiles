@@ -1,0 +1,10 @@
+#!/bin/bash
+cp ../../mp3/student-distrib/mp3.img .
+cp ../../mp3/student-distrib/bootimg .
+cp ../../mp3/student-distrib/filesys_img .
+cp ../../mp3/student-distrib/orig.img .
+
+
+
+
+
