@@ -7,6 +7,7 @@
 #include "lib.h"
 #include "terminal.h"
 
+// General Constants
 #define MAX_FILENAME_LENGTH 32
 #define FILESYSTEM_BLOCKSIZE 4096
 #define NUM_DATABLOCKS_PER_INODE 1023
@@ -17,10 +18,11 @@
 #define BUFFER_TEST_SIZE 1500
 #define FNAME_L 12
 
+// Simple preprocessor functions
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 
-
+// Structs used to seperate info in file system
 typedef struct __attribute__((packed)) inode
 {
 	uint32_t length;
@@ -45,8 +47,10 @@ typedef struct __attribute__((packed)) boot_block
 	dentry_t fileDirectory[MAX_NUM_DIRECTORY_ENTRIES];
 } boot_block_t; 
 
+// Structure that holds all the file system info
 boot_block_t* fileSysBootBlock;
 
+// Functions used to define the file system and file system functionality
 extern void fileSysInit(module_t* mod);
 extern int32_t fileOpen();
 extern int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes);
@@ -54,15 +58,18 @@ extern int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes);
 extern int32_t fileWrite();
 extern int32_t fileClose();
 
+// Functions to do the directory stuff
 extern int32_t directoryOpen();
 extern int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes);
 extern int32_t directoryWrite();
 extern int32_t directoryClose();
 
+//functions used to read from the directory entries
 extern int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry);
 extern int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry);
 extern int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length);
 
+// test functions 
 extern void testDirRead();
 extern void testFileRead(uint8_t * fname);
 extern void testFileIndex(uint32_t index);

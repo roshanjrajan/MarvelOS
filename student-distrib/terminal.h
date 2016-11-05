@@ -4,6 +4,7 @@
 #include "lib.h"
 #include "i8259.h"
 
+// General Constants used
 #define KB_IRQ 1
 #define KB_DATA_PORT 0x60
 #define SIZE_SCODES 64
@@ -25,7 +26,7 @@
 #define CAPS_OFF 64
 #define SHIFT_OFF 128
 
-
+// Functions used to define the keyboard and terminal
 extern void KBhandler();
 extern int32_t terminalOpen(const uint8_t* filename);
 extern int32_t terminalClose(int32_t fd);
