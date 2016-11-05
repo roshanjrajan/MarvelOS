@@ -1,7 +1,10 @@
-include "x86_desc.h"
+#ifndef SYSTEMCALL_H
+#define SYSTEMCALL_H
 
-#define TSS_CS KERNEL_CS + 0x03	//Setting RPL to 3
-#define TSS_DS KERNEL_DS + 0x03	
+#include "x86_desc.h"
+#include "types.h"
 
 extern void switch_to_user_mode();
-extern void flush_tss();
+extern fastcall void syscall(uint32_t num, uint32_t arg1, uint32_t arg2, uint32_t arg3);
+
+#endif 

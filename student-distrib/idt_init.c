@@ -290,83 +290,6 @@ void init_exceptions(){
 	SET_IDT_ENTRY(idt[19], eh19);
 }
 
-/*
- * KBhandler
- * Handler for keyboard input.
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: Prints typed character to the screen. 
- */
-/*void KBhandler(){
-	// As interrupt, save all general purpose registers
-	asm volatile ("pusha");
-	
-	// select and push ascii code from table
-	uint32_t scode;
-	scode = inb(KB_DATA_PORT);
-	if(ascii_scan[scode] != 0)
-		putc(ascii_scan[scode]);
-	
-	// end of interrupt signal
-	send_eoi(KB_IRQ);
-
-	// restore general purpose register, return
-	asm volatile ("popa");
-	asm volatile ("leave");
-	asm volatile ("iret");
-}*/
-
-/* 
- * RTC_init
- *
- * DESCRIPTION: initialize the RTC device.
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: RTC device will start producing periodic interrupts. 
- */
-/*void RTC_init(){
-	// Enable periodic interrupt (bit 6 in reg B)
-	outb(BIT8+RTC_B, RTC_PORT);
-	char prev = inb(RTC_DATA);
-	outb(BIT8+RTC_B, RTC_PORT);
-	outb(prev | BIT6_MASK, RTC_DATA);
-	
-	// Changing interrupt rate (lower four bits in reg A)
-	outb(BIT8+RTC_A, RTC_PORT);
-	prev = inb(RTC_DATA);
-	outb (BIT8+RTC_A, RTC_PORT);
-	outb((prev & HI4) | LOW4, RTC_DATA);
-	
-	outb(inb(RTC_PORT)&(~BIT8), RTC_PORT);	// Enable NMI
-	
-	// Read data from reg C
-	outb(RTC_C, RTC_PORT);
-	inb(RTC_DATA);
-}*/
-
-/* 
- * RTChandler
- *
- * DESCRIPTION: Interrupt handler for the RTC device.
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: none.
- */
-/*void RTChandler(){
-	// As interrupt, save all general purpose registers
-	asm volatile ("pusha");
-	
-	outb(RTC_C, RTC_PORT);
-	inb(RTC_DATA);
-	test_interrupts();
-	send_eoi(RTC_IRQ);
-	
-	// restore general purpose register, return	
-	asm volatile ("popa");
-	asm volatile ("leave");
-	asm volatile ("iret");
-}*/
-
 /* 
  * init_interrupts
  *
@@ -397,20 +320,6 @@ void init_interrupts(){
 	// put RTC handler into IDT
 	SET_IDT_ENTRY(idt[RTC_IRQ+NUM_EXCEPTIONS], RTChandler);
 	idt[RTC_IRQ+NUM_EXCEPTIONS].present = 1;
-}
-
-/* 
- * syscall
- *
- * DESCRIPTION: System call handler - not yet implemented
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: none.
- */
-void syscall(){
-	/* TODO */
-	printf("System Call Handler not yet implemented!");
-	while(1);
 }
 
 /*
