@@ -1,22 +1,20 @@
 #include "systemcall.h"
-/* Set up our stack to prepare for switching to user mode */
-void switch_to_user_mode()
-{
-   asm volatile("  \ 
-     cli; \ 
-     mov $USER_DS, %ax; \ 
-     mov %ax, %ds; \ 
-     mov %ax, %es; \ 
-     mov %ax, %fs; \ 
-     mov %ax, %gs; \ 
-                   \ 
-     mov %esp, %eax; \ 
-     pushl $USER_CS; \ 
-     pushl %eax; \ 
-     pushf; \ 
-     pushl $0x1B; \ 
-     push $1f; \ 
-     iret; \ 
-   1: \ 
-     ");
+
+void initialize_tss(uint16_t kernel_stack_segment, uint32_t kernel_stack_pointer) {
+    SET_TSS_PARAMS(tss_desc_ptr, tss, tss_size);
+    tss_desc_ptr.type = 9;////////
+    tss_desc_ptr.sys = 0;/////
+    tss_desc_ptr.dpl = 0;/////
+    tss_desc_ptr.present = 1;
+    tss_desc_ptr.opsize =0;
+    tss_desc_ptr.granularity = 0;/////////
+    tss.esp0 = kernel_stack_pointer;
+    tss.ss0 = kernel_stack_segment;
+    tss.cs = TSS_CS;
+    tss.ss = tss.ds = tss.es = tss.fs = tss.gs = TSS_DS;
+    flush_tss();
+}
+
+void set_kernel_stack (uint32_t kernel_stack_ptr) {
+    tss.esp0 = kernel_stack_ptr;
 }
