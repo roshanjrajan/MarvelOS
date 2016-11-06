@@ -1,7 +1,10 @@
 
+#include "systemcall.h"
 #define USER_CS 0x0023
 #define USER_DS 0x002B
 #define MAX_SYSCALL_NUM 9
+#define RET_VAL_OFFSET 32
+#define ERROR_VAL -1
 
 .text
 
@@ -20,6 +23,7 @@
 
 #Dispatcher function for system calls
 syscall:
+	#initial bookeeping procedure
 	pushl %ebp
 	movl %esp, %ebp
 	pusha
@@ -36,6 +40,15 @@ syscall:
 
 	#teardown stack
 	addl $12, %esp
+	#movl %eax, RET_VAL_OFFSET(%ebp)
+	popa
+	leave
+	iret
+
+#Function for returning error for invalid system call number
+invalid_syscall_num: 
+	movl $ERROR_VAL, %eax
+	#movl %eax, RET_VAL_OFFSET(%ebp)
 	popa
 	leave
 	iret
@@ -51,12 +64,6 @@ jmp_table:
 			sys_vidmap,
 			sys_sethandler,
 			sys_sigreturn
-
-invalid_syscall_num: 
-	popa
-	movl $-1, %eax
-	leave
-	iret
 
 
 #Set up our stack to prepare for switching to user mode

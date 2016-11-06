@@ -1,9 +1,5 @@
 #include "filesystem.h"
 
-// Starting address of File System Image
-uint32_t bootMemAddr;
-
-
 /*
 * uint32_t strlen(const int8_t* s);
 *   Inputs: const int8_t* s = string to take length of
@@ -193,11 +189,11 @@ void fileSysInit(module_t *mod)
  * fileOpen
  *
  * DESCRIPTION: Open nothing 
- * INPUT: none.
+ * INPUT: dummy value.
  * OUTPUT: returns 0
  * SIDE_EFFECTS: none. 
  */
-int32_t fileOpen(){
+int32_t fileOpen(const uint8_t* filename){
 	return 0;
 }
 
@@ -254,7 +250,7 @@ int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t fileWrite(){
+int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes){
 	return -1;
 }
 
@@ -267,7 +263,7 @@ int32_t fileWrite(){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t fileClose(){
+int32_t fileClose(int32_t fd){
 	return 0;
 }
 
@@ -282,11 +278,11 @@ int32_t fileClose(){
  * directoryOpen
  *
  * DESCRIPTION: Open nothing 
- * INPUT: none.
+ * INPUT: dummy argument.
  * OUTPUT: returns 0
  * SIDE_EFFECTS: none. 
  */
-int32_t directoryOpen(){
+int32_t directoryOpen(const uint8_t* filename){
 	return 0;
 }
 
@@ -335,7 +331,7 @@ int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t directoryWrite(){
+int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes){
 	return -1;
 }
 
@@ -348,10 +344,9 @@ int32_t directoryWrite(){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t directoryClose(){
+int32_t directoryClose(int32_t fd){
 	return 0;
 }
-
 
 /* 
  * testDirRead
