@@ -39,7 +39,7 @@ int32_t sys_halt (uint8_t status) {
 }
 
 int32_t sys_execute (const uint8_t* command){
-	int pid;
+	int pid=0;
 
 	//Make sure arg is valid
 	if(command == NULL) {
