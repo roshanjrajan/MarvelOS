@@ -1,22 +1,32 @@
 #include "systemcall.h"
 
-void initialize_FDT() {
+void initialize_PCB_pointers() {
 	int index;
+	for(index = 0; index < MAX_PROCESSES; index ++) {
+		PCB_ptrs[index] = NULL;
+	}
+}
+
+void initialize_FDT(int32_t pid) {
+	int index;
+	fdt = PCB_ptrs[pid]->process_fdt;
 
 	//Initialize all fdt entries
-	for(index = 0; index < 8; index ++) {
-		fdt[i].fops_pointer = NULL;
-		fdt[i].inode_pointer = NULL;
-		fdt[i].file_position = 0;
-		fdt[i].flags=0;
+	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
+		fdt[index].fops_pointer = NULL;
+		fdt[index].inode_pointer = NULL;
+		fdt[index].file_position = -1;
+		fdt[index].flags=0;
 	}
 
-	//Initialize stdin/stdout fops pointers and flags
-	fdt[0].fops_pointer = stdin_fops; 
-	fdt[0].flags = 1;
+	//Initialize stdin/stdout fops pointers, flags, and file positions
+	fdt[STDIN_INDEX_IN_FDT].fops_pointer = stdin_fops; 
+	fdt[STDIN_INDEX_IN_FDT].flags = 1;
+	fdt[STDIN_INDEX_IN_FDT].file_position = 0;
 
-	fdt[1].fops_pointer = stdout_fops;
-	fdt[1].flags = 1;
+	fdt[STDOUT_INDEX_IN_FDT].fops_pointer = stdout_fops;
+	fdt[STDOUT_INDEX_IN_FDT].flags = 1;
+	fdt[STDOUT_INDEX_IN_FDT].file_position = 0;
 }
 
 
@@ -29,6 +39,56 @@ int32_t sys_halt (uint8_t status) {
 }
 
 int32_t sys_execute (const uint8_t* command){
+	int pid;
+
+	//Make sure arg is valid
+	if(command == NULL) {
+		return ERROR_VAL;
+	}
+
+	//Make sure our file is valid
+	dentry_t new_dentry;
+	if(read_dentry_by_name(command, &new_dentry) == -1) {
+		return ERROR_VAL;
+	}
+
+	//Find the process id 
+	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
+		pid++;
+	}
+	
+	//Check if we are already running the maximum number of processes
+	if(pid == MAX_PROCESSES){
+		return ERROR_VAL;
+	}
+
+	//Start populating PCB data
+	PCB_ptrs[pid] = EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
+	PCB_ptrs[pid] -> pid = pid;
+	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
+
+	//Initialize Paging for the process image (corresponds to virtual address 128 MB)
+	page_directory[PROCESS_PAGING_INDEX].page_table_address =  (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
+	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
+	page_directory[PROCESS_PAGING_INDEX].reserved_1 = 0;
+	page_directory[PROCESS_PAGING_INDEX].page_size	= 1;
+	page_directory[PROCESS_PAGING_INDEX].reserved_2 = 0;
+	page_directory[PROCESS_PAGING_INDEX].accessed = 0;
+	page_directory[PROCESS_PAGING_INDEX].cache_disable = 0;
+	page_directory[PROCESS_PAGING_INDEX].write_through = 0;
+	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 0;
+	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1; 
+	page_directory[PROCESS_PAGING_INDEX].present = 1;
+
+	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX]; //***********Is this what we're looking for? **********************
+
+	//**************We need to figure out how to implement the following 3 things**********************
+	PCB_ptrs[pid] -> parent_pid = 0;
+	PCB_ptrs[pid] -> esp = 0; //Inline assembly for this and following?
+	PCB_ptrs[pid] -> ebp = 0;
+
+	//****** Refer to Piazza diagram to finish rest of execute **********************
+
 	// asm volatile ("jump_point:");
 	// asm volatile ("ret");
 	// return 10;
@@ -46,19 +106,22 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 }
 
 int32_t sys_open (const uint8_t* filename){
+	int index;
 	if(strncmp(filename, "stdin", 5) == 0) {
+		index =0; 
 		fdt[index].fops_pointer = &stdin_fops;
 	}
 	else if(strncmp(filename, "stdout", 6) == 0) {
+		index = 1;
 		fdt[index].fops_pointer = &stdout_fops;
 	}
 	else {
-		int index=2;
+		index = 2;
 		int filetype;
 		dentry_t new_dentry;
 
 		//Check to make sure FDT isn't full
-		while(index < MAX_NUM_FDT_ENTRIES && fdt[i].flags == 1) {
+		while(index < MAX_NUM_FDT_ENTRIES && fdt[index].flags == 1) {
 			index++;
 		}
 
@@ -75,9 +138,15 @@ int32_t sys_open (const uint8_t* filename){
 
 		//If we have a regular file, then update the inode pointer
 		if(filetype == REGULAR_FILE_FILETYPE) {
-			fdt[index].inode_pointer = (bootMemAddr + FILESYSTEM_BLOCKSIZE*(new_dentry.inodeNum + 1));		
+			fdt[index].inode_pointer = (bootMemAddr + FILESYSTEM_BLOCKSIZE*(new_dentry.inodeNum + 1));///*************using inode?
+		}
+		else {
+			fdt[index].inode_pointer = NULL;
 		}
 		
+		//update the file position
+		fdt[index].file_position =0; ///***********************
+
 		//Mark as used
 		fdt[index].flags = 1;
 
@@ -101,7 +170,7 @@ int32_t sys_open (const uint8_t* filename){
 
 	}
 	(*fdt[index].fops_pointer.open)(filename);
-	return 0;
+	return index;
 }
 
 

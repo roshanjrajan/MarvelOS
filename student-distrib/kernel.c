@@ -178,8 +178,6 @@ entry (unsigned long magic, unsigned long addr)
 
 	init_paging();				// Separate paging initialization function
 
-	//initialize_FDT();
-
 	/* Initialize devices, memory, filesystem, enable device interrupts on the
 	 * PIC, any other initialization stuff... */
 
@@ -190,6 +188,7 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
+
 	
 	
 	// // TESTING Mp3 Checkpoint 2
@@ -344,6 +343,8 @@ entry (unsigned long magic, unsigned long addr)
 	//Page Fault
 	//int* i = 0;
 	//printf("%d \n", *i);
+
+	//initialize_PCB_pointers();
 
 	/* Execute the first program (`shell') ... */
 
