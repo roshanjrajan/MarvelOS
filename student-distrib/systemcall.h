@@ -19,7 +19,7 @@
 #define FOUR_MB 0x00400000
 #define EIGHT_KB 0x00002000
 #define PROCESS_PAGING_INDEX 32 // (128 MB / 4 MB) = 32 (indexing starts at 0)
-#define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_KB
+#define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_MB
 
 extern void switch_to_user_mode();
 extern void initialize_FDT(int32_t pid);
@@ -68,6 +68,7 @@ typedef struct __attribute__((packed)) PCB {
 	pde_desc_t pde;
 	uint32_t esp;
 	uint32_t ebp;
+	uint8_t * arg_ptr;
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 

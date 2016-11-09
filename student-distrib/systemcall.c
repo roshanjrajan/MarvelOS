@@ -1,5 +1,7 @@
 #include "systemcall.h"
 
+int cur_pid = -1;
+
 void initialize_PCB_pointers() {
 	int index;
 	for(index = 0; index < MAX_PROCESSES; index ++) {
@@ -40,6 +42,33 @@ int32_t sys_halt (uint8_t status) {
 
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
+	uint8_t * args = NULL;
+	uint8_t * fname[32];
+	int i;
+	// Initializing fname to all '\0'
+	for(i=0; i<32; i++){
+		fname[i] = '\0';
+	}
+	
+	// Fill in filename
+	i=0;
+	while(command[i] != '\0' && command[i] != ' ' && i<32){
+		fname[i] = command[i];
+		i++;
+	}
+	
+	// Ignore spaces between name and args
+	i=0;
+	while(command[i] == ' '){
+		i++;
+	}
+	
+	// If there are args, set the args ptr to be used later in the PCB
+	if(command[i] != '\0'){
+		args = &command[i];
+	}
+	
+	
 
 	//Make sure arg is valid
 	if(command == NULL) {
@@ -48,11 +77,11 @@ int32_t sys_execute (const uint8_t* command){
 
 	//Make sure our file is valid
 	dentry_t new_dentry;
-	if(read_dentry_by_name(command, &new_dentry) == -1) {
+	if(read_dentry_by_name(fname, &new_dentry) == -1) {
 		return ERROR_VAL;
 	}
 
-	//Find the process id 
+	//Find the next available process id 
 	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
 		pid++;
 	}
@@ -65,30 +94,52 @@ int32_t sys_execute (const uint8_t* command){
 	//Start populating PCB data
 	PCB_ptrs[pid] = EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
+	PCB_ptrs[pid] -> parent_pid = cur_pid;
+	cur_pid = pid;
+	PCB_ptrs[pid] -> pde.page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
+	PCB_ptrs[pid] -> pde.open_bits = 0;
+	PCB_ptrs[pid] -> pde.reserved_1 = 0;
+	PCB_ptrs[pid] -> pde.page_size = 1;
+	PCB_ptrs[pid] -> pde.reserved_2 = 0;
+	PCB_ptrs[pid] -> pde.accessed = 0;
+	PCB_ptrs[pid] -> pde.cache_disable = 0;
+	PCB_ptrs[pid] -> pde.write_through = 0;
+	PCB_ptrs[pid] -> pde.user_supervisor = 0;
+	PCB_ptrs[pid] -> pde.read_write_permissions = 1;
+	PCB_ptrs[pid] -> pde.present = 1;
+	uint32_t * ptr;
+	asm("movl %%esp, %0;"
+		:"=r"(ptr)
+		:::
+		:::);
+	PCB_ptrs[pid] -> esp = ptr;
+	asm("movl %%ebp, %0;"
+		:"=r"(ptr)
+		:::
+		:::);
+	PCB_ptrs[pid] -> ebp = ptr;
+	PCB_ptrs[pid] -> arg_ptr = arg;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
 	//Initialize Paging for the process image (corresponds to virtual address 128 MB)
-	page_directory[PROCESS_PAGING_INDEX].page_table_address =  (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
-	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
-	page_directory[PROCESS_PAGING_INDEX].reserved_1 = 0;
-	page_directory[PROCESS_PAGING_INDEX].page_size	= 1;
-	page_directory[PROCESS_PAGING_INDEX].reserved_2 = 0;
-	page_directory[PROCESS_PAGING_INDEX].accessed = 0;
-	page_directory[PROCESS_PAGING_INDEX].cache_disable = 0;
-	page_directory[PROCESS_PAGING_INDEX].write_through = 0;
-	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 0;
-	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1; 
-	page_directory[PROCESS_PAGING_INDEX].present = 1;
+	page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[pid] -> pde;
+		//********WILL NEED TO FLUSH TLB HERE**************
+	clearTLB();
 
-	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX]; //***********Is this what we're looking for? **********************
+		//PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX]; //***********Is this what we're looking for? **********************
+		// ^ Set in PCB first then copied over
 
 	//**************We need to figure out how to implement the following 3 things**********************
-	PCB_ptrs[pid] -> parent_pid = 0;
-	PCB_ptrs[pid] -> esp = 0; //Inline assembly for this and following?
-	PCB_ptrs[pid] -> ebp = 0;
+	// Implemented under "//Start populating PCB data^^^^^^^^^^^^"
 
 	//****** Refer to Piazza diagram to finish rest of execute **********************
 
+	// Prepare for context switch**************
+	// TODO:
+	
+	// Push IRET context to stack**************
+	// TODO:
+	
 	// asm volatile ("jump_point:");
 	// asm volatile ("ret");
 	// return 10;
@@ -185,7 +236,7 @@ int32_t sys_close (int32_t fd) {
 }
 
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
-
+	strncpy(buf, PCB_ptrs[cur_pid] -> arg_ptr, nbytes);
 	return 0;
 }
 
