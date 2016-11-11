@@ -7,7 +7,6 @@
 #include "RTC.h"
 #include "types.h"
 #include "paging.h"
-#include "super.h"
 
 #define RTC_DEVICE_FILETYPE 0
 #define DIRECTORY_FILETYPE 1
@@ -33,6 +32,7 @@
 extern void switch_to_user_mode(uint32_t starting_addr);
 extern void initialize_FDT(int32_t pid);
 extern void initialize_PCB_pointers();
+extern int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
 
 //System call dispatcher function
 extern int32_t syscall();
@@ -57,6 +57,22 @@ int32_t dummy_close (int32_t fd);
 
 void initialize_fops();
 
+typedef	struct __attribute__((packed)) fops_table
+{
+	int32_t (*open)(const uint8_t*);
+	int32_t (*close)(int32_t);
+	int32_t (*read)(int32_t, void*, int32_t);
+	int32_t (*write)(int32_t, const void*, int32_t);
+} fops_table_t;
+
+typedef struct __attribute__((packed)) file_descriptor_entry
+{
+	fops_table_t * fops_pointer;
+	uint32_t inodeNum;
+	int32_t file_position;
+	uint32_t flags;
+} file_descriptor_entry_t;
+
 typedef struct __attribute__((packed)) PCB {
 	int32_t pid;
 	int32_t parent_pid;
@@ -68,16 +84,13 @@ typedef struct __attribute__((packed)) PCB {
 } PCB_t; 
 
 PCB_t* PCB_ptrs[MAX_PROCESSES];
+extern file_descriptor_entry_t * fdt;
 
-//Populate our fops tables
+//Here are our fops tables
 fops_table_t stdin_fops;
-
 fops_table_t stdout_fops;
-
 fops_table_t regfile_fops;
-
 fops_table_t directory_fops;
-
 fops_table_t RTC_fops;
 
 int cur_pid;

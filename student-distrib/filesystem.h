@@ -5,7 +5,6 @@
 #include "multiboot.h"
 #include "lib.h"
 #include "terminal.h"
-#include "super.h"
 
 // General Constants
 #define MAX_FILENAME_LENGTH 32
@@ -57,7 +56,6 @@ uint32_t bootMemAddr;
 extern void fileSysInit(module_t* mod);
 extern int32_t fileOpen(const uint8_t* filename);
 
-extern int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
 extern int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes);
 
 extern int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes);

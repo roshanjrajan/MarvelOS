@@ -1,6 +1,26 @@
 #include "systemcall.h"
 
-
+/* 
+ * fileRead
+ *
+ * DESCRIPTION: Reads a file using a file descriptor and fills in the buffer
+ * INPUT: int32_t fd = entry in file descriptor table
+ * 		  void *  buf = buffer to be filled
+ * 		  int32_t nbytes = length of buffer
+ * OUTPUT: returns -1 if bad file name, else returns bytes copied or errors from read_data
+ * SIDE_EFFECTS: Fills in buffer to be printed
+ */
+int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
+	//Make sure we have valid arguments
+	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
+		return ERROR_VAL;
+	}
+	if(nbytes < 0) {
+		return ERROR_VAL;
+	}
+	file_descriptor_entry_t * current_process_fdt = PCB_ptrs[cur_pid]->process_fdt;
+	return read_data (current_process_fdt[fd].inodeNum, current_process_fdt[fd].file_position, buf, nbytes);
+}
 
 void initialize_fops(){
 	stdin_fops.open = terminalOpen;
@@ -64,11 +84,44 @@ void initialize_FDT(int32_t pid) {
 
 
 int32_t sys_halt (uint8_t status) {
+	int index;
 
-	// asm volatile()
-	// asm volatile("jmp jump_point");
-	return 0;
+	//Identify PID
+	parents_pid = PCB_ptrs[cur_pid] -> parent_pid;
+	
+	//We are ending highest level process
+	if(parents_pid == -1) {
 
+		//TODO: AT this point, we just have to launch the shell again ******************************
+
+
+		//Disable paging for virtual program space
+		// page_directory[PROCESS_PAGING_INDEX].present = 0;
+		// fdt = NULL;
+		// PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
+		// cur_pid = -1;
+	}
+
+	//We are ending a child process
+	else{
+		page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[parents_pid] -> pde; //Restore paging for parent process
+		fdt = PCB_ptrs[parents_pid] -> process_fdt; //Update global fdt pointer
+		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
+		cur_pid = parents_pid;
+		//TODO: Restore EBP and ESP here with inline assembly ******************************
+
+
+	}
+
+	//TODO: in all of our exception handlers, we need to devise a way to call sys_halt(256) instead of waiting
+			//in a while loop
+
+	//TODO: Load EAX with the 8 bit argument using inline assembly ******************************
+
+	asm volatile("jmp jump_point");
+
+	//If we have reached this point, then there is an error
+	return ERROR_VAL;
 }
 
 int32_t sys_execute (const uint8_t* command){
@@ -110,23 +163,23 @@ int32_t sys_execute (const uint8_t* command){
 		return ERROR_VAL;
 	}
 
+	//TODO: Cleanup some stuff in filesystem.c (user ERROR_VAL constant and check nBytes in read_data filesystem.c)
+
 	//Check to make sure file is an executable
 	uint8_t testBuffer[EXECUTABLE_CHECK_BUFFER_SIZE];
 	if(read_data(new_dentry.inodeNum, 0, testBuffer, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
 		return ERROR_VAL;
 	}
 	if(testBuffer[0] != EXECUTABLE_FIRST_BYTE || testBuffer[1] != EXECUTABLE_SECOND_BYTE
-		|| testBuffer[2] != EXECUTABLE_THIRD_BYTE || testBuffer[2] != EXECUTABLE_FOURTH_BYTE) {
+		|| testBuffer[2] != EXECUTABLE_THIRD_BYTE || testBuffer[3] != EXECUTABLE_FOURTH_BYTE) {
 		return ERROR_VAL;
 	}
 
 	//Determine the offset from which we start reading instructions in the program
-	if(read_data(new_dentry.inodeNum, EXECUTABLE_INSTRUCTION_START_BYTE, testBuffer, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
+	uint32_t program_eip = 0;
+	if(read_data(new_dentry.inodeNum, EXECUTABLE_INSTRUCTION_START_BYTE, (uint8_t *) program_eip, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
 		return ERROR_VAL;
 	}
-	uint32_t starting_adrs = 0;
-	starting_adrs = (testBuffer[0] << 24) || (testBuffer[1]<< 16) || (testBuffer[2] << 8) || testBuffer[3];
-	starting_adrs += PROGRAM_INIT_VIRTUAL_ADDR;
 
 	//Find the next available process id 
 	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
@@ -154,6 +207,22 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] -> pde.user_supervisor = 0;
 	PCB_ptrs[pid] -> pde.read_write_permissions = 1;
 	PCB_ptrs[pid] -> pde.present = 1;
+	PCB_ptrs[pid] -> arg_ptr = args;
+	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
+
+	//Initialize paging for the process image (corresponds to virtual address 128 MB)
+	page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[pid] -> pde;
+
+	//TODO: Perform loading procedure ******************************
+	//For loading procedure, use read_data to copy 4MB of program to its 4MB page in virtual memory
+	//make sure that read data copies directly to memory location -> we shouldn't use static buffer on stack
+	// (especially for such a large amount)
+
+	//Flush the TLB for each new program
+	clearTLB();
+
+	// Perform context switch
+ 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + (pid + 1) * FOUR_MB) - 4;//update the process's kernel-mode stack pointer
 	uint32_t ptr;
 	asm("movl %%esp, %0;"
 		:"=r"(ptr)
@@ -165,25 +234,15 @@ int32_t sys_execute (const uint8_t* command){
 		:
 		:"memory");
 	PCB_ptrs[pid] -> ebp = ptr;
-	PCB_ptrs[pid] -> arg_ptr = args;
-	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
-	//Initialize paging for the process image (corresponds to virtual address 128 MB)
-	page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[pid] -> pde;
+ 	switch_to_user_mode(program_eip);
+	
+	asm volatile ("jump_point:");
+	asm volatile ("leave");
+	asm volatile ("ret");
 
-	//Flush the TLB for each new program
-	clearTLB();
-
-	// Perform context switch
- 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + (pid + 1) * FOUR_MB) - 4;//update the process's kernel-mode stack pointer
- 	switch_to_user_mode(starting_adrs);
-	
-	
-	// POST HALT STUFF*****************
-	
-	
-	// asm volatile ("jump_point:");
-	return 0;
+	//If we have reached this point, then there is an error
+	return ERROR_VAL;
 }
 
 int32_t sys_read (int32_t fd, void* buf, int32_t bytes) {

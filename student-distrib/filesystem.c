@@ -146,7 +146,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 		copy_start = bootMemAddr + FILESYSTEM_BLOCKSIZE * (fileSysBootBlock->numInodes + 1 + 
 			fileInode.dataBlocks[dataBlockIndex]) + dataBlockOffset;
 			
-		// amount to be copiued
+		// amount to be copied
 		copy_len = MIN((FILESYSTEM_BLOCKSIZE - dataBlockOffset), copyLength - bytesCopied);
 		
 		// Copy into buffer
@@ -196,22 +196,6 @@ void fileSysInit(module_t *mod)
 int32_t fileOpen(const uint8_t* filename){
 	return 0;
 }
-
-/* 
- * fileRead
- *
- * DESCRIPTION: Reads a file using the file name and fills in the buffer
- * INPUT: int32_t fd = entry in file descriptor table
- * 		  void *  buf = buffer to be filled
- * 		  int32_t nbytes = length of buffer
- * OUTPUT: returns -1 if bad file name, else returns bytes copied or errors from read_data
- * SIDE_EFFECTS: Fills in buffer to be printed
- */
-int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
-	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
-	return read_data (fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
-}
-
 
 /* 
  * fileReadIdx

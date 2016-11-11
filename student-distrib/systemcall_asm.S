@@ -1,11 +1,8 @@
-
-//#define ASM     1
-//#include "systemcall.h"
+#define ASM     1
 
 #define USER_CS 0x0023
 #define USER_DS 0x002B
 #define MAX_SYSCALL_NUM 9
-#define RET_VAL_OFFSET 32
 #define ERROR_VAL -1
 #define FIRST_ARG_OFFSET 8
 
@@ -13,16 +10,7 @@
 
 .globl 	syscall
 .globl	switch_to_user_mode
-.globl 	sys_halt
-.globl  sys_execute
-.globl  sys_read
-.globl	sys_write
-.globl	sys_open
-.globl	sys_close
-.globl	sys_getargs
-.globl	sys_vidmap
-.globl	sys_sethandler
-.globl	sys_sigreturn
+.long  return_value
 
 #Dispatcher function for system calls
 syscall:
@@ -43,22 +31,22 @@ syscall:
 
 	#teardown stack
 	addl $12, %esp
-	#movl %eax, RET_VAL_OFFSET(%ebp)
+	movl %eax, return_value
 	popa
+	movl return_value, %eax
 	leave
 	iret
 
 #Function for returning error for invalid system call number
 invalid_syscall_num: 
 	movl $ERROR_VAL, %eax
-	#movl %eax, RET_VAL_OFFSET(%ebp)
+	movl %eax, return_value
 	popa
+	movl return_value, %eax
 	leave
 	iret
 
 jmp_table: 
-#	.long 	syscall
-#	.long	switch_to_user_mode
 	.long 	sys_halt
 	.long   sys_execute
 	.long   sys_read
