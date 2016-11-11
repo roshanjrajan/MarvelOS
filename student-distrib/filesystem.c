@@ -201,22 +201,15 @@ int32_t fileOpen(const uint8_t* filename){
  * fileRead
  *
  * DESCRIPTION: Reads a file using the file name and fills in the buffer
- * INPUT: const uint8_t* fname = file name of file to be read
+ * INPUT: int32_t fd = entry in file descriptor table
  * 		  void *  buf = buffer to be filled
  * 		  int32_t nbytes = length of buffer
  * OUTPUT: returns -1 if bad file name, else returns bytes copied or errors from read_data
  * SIDE_EFFECTS: Fills in buffer to be printed
  */
-int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes){
+int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 	
-	dentry_t dentry;
-	
-	// Check that file exists and fill dentry
-	if(read_dentry_by_name (fname, &dentry) != 0)
-		return -1; // BAD FILE NAME
-	
-	// return data read
-	return read_data (dentry.inodeNum, 0, buf, nbytes);
+	return read_data (fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
 }
 
 
@@ -348,6 +341,21 @@ int32_t directoryClose(int32_t fd){
 	return 0;
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 /* 
  * testDirRead
  *
@@ -355,7 +363,7 @@ int32_t directoryClose(int32_t fd){
  * INPUT: none.
  * OUTPUT: Print directory files to the terminal
  * SIDE_EFFECTS: none. 
- */
+
 void testDirRead()
 {
 	//Read all files in directory
@@ -364,6 +372,10 @@ void testDirRead()
 	//printf("dirRead done");
 }
 
+ */
+
+
+
 /* 
  * testFileRead
  *
@@ -371,7 +383,7 @@ void testDirRead()
  * INPUT: none.
  * OUTPUT: Print directory files contents to the terminal
  * SIDE_EFFECTS: none. 
- */
+
 void testFileRead(uint8_t * fname)
 {
 	// fill in buffer about file
@@ -386,7 +398,7 @@ void testFileRead(uint8_t * fname)
 	terminalWrite(0, (void *)fname, strlenFile((int8_t *)fname, MAX_FILENAME_LENGTH));
 	terminalWrite(0, (void *)"\n", 1);
 }
-
+ */
 
 /* 
  * testDirRead
@@ -395,7 +407,7 @@ void testFileRead(uint8_t * fname)
  * INPUT: none.
  * OUTPUT: Print directory files to the terminal
  * SIDE_EFFECTS: none. 
- */
+
 void testFileIndex(uint32_t index)
 {
 	// fill in buffer about file
@@ -409,7 +421,7 @@ void testFileIndex(uint32_t index)
 	terminalWrite(0, (void *)"\n", 1);
 }
 
-
+ */
 
 
 

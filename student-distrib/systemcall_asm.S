@@ -1,25 +1,26 @@
 
-#include "systemcall.h"
+//#include "systemcall.h"
 #define USER_CS 0x0023
 #define USER_DS 0x002B
 #define MAX_SYSCALL_NUM 9
 #define RET_VAL_OFFSET 32
 #define ERROR_VAL -1
+#define FIRST_ARG_OFFSET 8
 
 .text
 
 .globl 	syscall
 .globl	switch_to_user_mode
-.globl 	sys_halt, 
-		sys_execute,
-		sys_read,
-		sys_write,
-		sys_open,
-		sys_close,
-		sys_getargs,
-		sys_vidmap,
-		sys_sethandler,
-		sys_sigreturn
+.globl 	sys_halt
+.globl  sys_execute
+.globl  sys_read
+.globl	sys_write
+.globl	sys_open
+.globl	sys_close
+.globl	sys_getargs
+.globl	sys_vidmap
+.globl	sys_sethandler
+.globl	sys_sigreturn
 
 #Dispatcher function for system calls
 syscall:
@@ -36,7 +37,7 @@ syscall:
 	pushl %edx
 	pushl %ecx
 	pushl %ebx
-	call jmp_table(, %eax, 4)	#make the dispatch call
+	call *jmp_table(, %eax, 4)	#make the dispatch call
 
 	#teardown stack
 	addl $12, %esp
@@ -54,21 +55,30 @@ invalid_syscall_num:
 	iret
 
 jmp_table: 
-	.long 	sys_halt, 
-			sys_execute,
-			sys_read,
-			sys_write,
-			sys_open,
-			sys_close,
-			sys_getargs,
-			sys_vidmap,
-			sys_sethandler,
-			sys_sigreturn
+	.long 	syscall
+	.long	switch_to_user_mode
+	.long 	sys_halt
+	.long   sys_execute
+	.long   sys_read
+	.long	sys_write
+	.long	sys_open
+	.long	sys_close
+	.long	sys_getargs
+	.long	sys_vidmap
+	.long	sys_sethandler
+	.long	sys_sigreturn
 
 
-#Set up our stack to prepare for switching to user mode
+#Set up our iret context and switch to user mode
 switch_to_user_mode:
+
+	#initial bookeeping procedure
+	pushl %ebp
+	movl %esp, %ebp
+
 	cli
+	movl FIRST_ARG_OFFSET(%ebp), %ecx
+	popl %ebp
 	mov $USER_DS, %eax
 	mov %ax, %ds
 	mov %ax, %es
@@ -76,11 +86,9 @@ switch_to_user_mode:
 	mov %ax, %gs
 
 	mov %esp, %eax
-
+	pushl $USER_DS
 	pushl %eax
 	pushf
 	pushl $USER_CS
-	push $1F
+	push %ecx
 	iret
-	1:
-

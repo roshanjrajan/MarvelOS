@@ -16,19 +16,21 @@ void initialize_FDT(int32_t pid) {
 	//Initialize all fdt entries
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
 		fdt[index].fops_pointer = NULL;
-		fdt[index].inode_pointer = NULL;
+		fdt[index].inodeNum = NULL;
 		fdt[index].file_position = -1;
 		fdt[index].flags=0;
 	}
 
 	//Initialize stdin/stdout fops pointers, flags, and file positions
-	fdt[STDIN_INDEX_IN_FDT].fops_pointer = stdin_fops; 
+	fdt[STDIN_INDEX_IN_FDT].fops_pointer = &stdin_fops; 
 	fdt[STDIN_INDEX_IN_FDT].flags = 1;
 	fdt[STDIN_INDEX_IN_FDT].file_position = 0;
+	(*fdt[STDIN_INDEX_IN_FDT].fops_pointer->open)(NULL);
 
-	fdt[STDOUT_INDEX_IN_FDT].fops_pointer = stdout_fops;
+	fdt[STDOUT_INDEX_IN_FDT].fops_pointer = &stdout_fops;
 	fdt[STDOUT_INDEX_IN_FDT].flags = 1;
 	fdt[STDOUT_INDEX_IN_FDT].file_position = 0;
+	(*fdt[STDOUT_INDEX_IN_FDT].fops_pointer->open)(NULL);
 }
 
 
@@ -43,8 +45,13 @@ int32_t sys_halt (uint8_t status) {
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
 	uint8_t * args = NULL;
-	uint8_t * fname[32];
+	uint8_t fname[32];
 	int i;
+	//Make sure arg is valid
+	if(command == NULL) {
+		return ERROR_VAL;
+	}
+
 	// Initializing fname to all '\0'
 	for(i=0; i<32; i++){
 		fname[i] = '\0';
@@ -65,21 +72,32 @@ int32_t sys_execute (const uint8_t* command){
 	
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
-		args = &command[i];
+		args = (uint8_t *) &command[i];
 	}
 	
-	
-
-	//Make sure arg is valid
-	if(command == NULL) {
-		return ERROR_VAL;
-	}
-
 	//Make sure our file is valid
 	dentry_t new_dentry;
 	if(read_dentry_by_name(fname, &new_dentry) == -1) {
 		return ERROR_VAL;
 	}
+
+	//Check to make sure file is an executable
+	uint8_t testBuffer[EXECUTABLE_CHECK_BUFFER_SIZE];
+	if(read_data(new_dentry.inodeNum, 0, testBuffer, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
+		return ERROR_VAL;
+	}
+	if(testBuffer[0] != EXECUTABLE_FIRST_BYTE || testBuffer[1] != EXECUTABLE_SECOND_BYTE
+		|| testBuffer[2] != EXECUTABLE_THIRD_BYTE || testBuffer[2] != EXECUTABLE_FOURTH_BYTE) {
+		return ERROR_VAL;
+	}
+
+	//Determine the offset from which we start reading instructions in the program
+	if(read_data(new_dentry.inodeNum, EXECUTABLE_INSTRUCTION_START_BYTE, testBuffer, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
+		return ERROR_VAL;
+	}
+	uint32_t starting_adrs = 0;
+	starting_adrs = (testBuffer[0] << 24) || (testBuffer[1]<< 16) || (testBuffer[2] << 8) || testBuffer[3];
+	starting_adrs += PROGRAM_INIT_VIRTUAL_ADDR;
 
 	//Find the next available process id 
 	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
@@ -92,7 +110,7 @@ int32_t sys_execute (const uint8_t* command){
 	}
 
 	//Start populating PCB data
-	PCB_ptrs[pid] = EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
+	PCB_ptrs[pid] = (PCB_t *) EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
 	cur_pid = pid;
@@ -107,42 +125,31 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] -> pde.user_supervisor = 0;
 	PCB_ptrs[pid] -> pde.read_write_permissions = 1;
 	PCB_ptrs[pid] -> pde.present = 1;
-	uint32_t * ptr;
+	uint32_t ptr;
 	asm("movl %%esp, %0;"
 		:"=r"(ptr)
-		:::
-		:::);
+		:
+		:"");
 	PCB_ptrs[pid] -> esp = ptr;
 	asm("movl %%ebp, %0;"
 		:"=r"(ptr)
-		:::
-		:::);
+		:
+		:"");
 	PCB_ptrs[pid] -> ebp = ptr;
-	PCB_ptrs[pid] -> arg_ptr = arg;
+	PCB_ptrs[pid] -> arg_ptr = args;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
-	//Initialize Paging for the process image (corresponds to virtual address 128 MB)
+	//Initialize paging for the process image (corresponds to virtual address 128 MB)
 	page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[pid] -> pde;
-		//********WILL NEED TO FLUSH TLB HERE**************
+
+	//Flush the TLB for each new program
 	clearTLB();
 
-		//PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX]; //***********Is this what we're looking for? **********************
-		// ^ Set in PCB first then copied over
-
-	//**************We need to figure out how to implement the following 3 things**********************
-	// Implemented under "//Start populating PCB data^^^^^^^^^^^^"
-
-	//****** Refer to Piazza diagram to finish rest of execute **********************
-
-	// Prepare for context switch**************
-	// TODO:
-	
-	// Push IRET context to stack**************
-	// TODO:
+	// Perform context switch
+ 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + (pid + 1) * FOUR_MB) - 4;//update the process's kernel-mode stack pointer
+ 	switch_to_user_mode(starting_adrs);
 	
 	// asm volatile ("jump_point:");
-	// asm volatile ("ret");
-	// return 10;
 	return 0;
 }
 
@@ -158,13 +165,11 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 
 int32_t sys_open (const uint8_t* filename){
 	int index;
-	if(strncmp(filename, "stdin", 5) == 0) {
-		index =0; 
-		fdt[index].fops_pointer = &stdin_fops;
+	if(strncmp((const int8_t *) filename,(const int8_t *) "stdin", 5) == 0) {
+		index = 0; 
 	}
-	else if(strncmp(filename, "stdout", 6) == 0) {
+	else if(strncmp((const int8_t *) filename, (const int8_t *) "stdout", 6) == 0) {
 		index = 1;
-		fdt[index].fops_pointer = &stdout_fops;
 	}
 	else {
 		index = 2;
@@ -185,18 +190,18 @@ int32_t sys_open (const uint8_t* filename){
 		if(read_dentry_by_name(filename, &new_dentry) == -1) {
 			return ERROR_VAL;
 		}
-		filetype = new_dentry.type;
+		filetype = new_dentry.fileType;
 
 		//If we have a regular file, then update the inode pointer
 		if(filetype == REGULAR_FILE_FILETYPE) {
-			fdt[index].inode_pointer = (bootMemAddr + FILESYSTEM_BLOCKSIZE*(new_dentry.inodeNum + 1));///*************using inode?
+			fdt[index].inodeNum = new_dentry.inodeNum;
 		}
 		else {
-			fdt[index].inode_pointer = NULL;
+			fdt[index].inodeNum = NULL;
 		}
 		
 		//update the file position
-		fdt[index].file_position =0; ///***********************
+		fdt[index].file_position =0;
 
 		//Mark as used
 		fdt[index].flags = 1;
@@ -218,9 +223,8 @@ int32_t sys_open (const uint8_t* filename){
 			default:
 				return ERROR_VAL;
 		}	
-
+		(*fdt[index].fops_pointer->open)(filename);
 	}
-	(*fdt[index].fops_pointer.open)(filename);
 	return index;
 }
 
@@ -230,17 +234,17 @@ int32_t sys_close (int32_t fd) {
 		return ERROR_VAL;
 	}
 
-	(*fdt[fd].fops_pointer.close)(fd);
+	(*fdt[fd].fops_pointer->close)(fd);
 	fdt[fd].flags = 0;
 	return 0;
 }
 
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
-	strncpy(buf, PCB_ptrs[cur_pid] -> arg_ptr, nbytes);
+	strncpy((int8_t *) buf, (const int8_t *) PCB_ptrs[cur_pid] -> arg_ptr, nbytes);
 	return 0;
 }
 
-int32_t sys_vidmap (uint8_t** screen start){
+int32_t sys_vidmap (uint8_t** screen_start){
 
 	return 0;
 }
@@ -269,8 +273,4 @@ int32_t dummy_open (const uint8_t* filename){
 
 int32_t dummy_close (int32_t fd){
 	return ERROR_VAL;
-}
-
-void set_kernel_stack (uint32_t kernel_stack_ptr) {
-    tss.esp0 = kernel_stack_ptr;
 }
