@@ -1,4 +1,3 @@
-
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
  
@@ -79,5 +78,9 @@ extern int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_
 extern void testDirRead();
 extern void testFileRead(uint8_t * fname);
 extern void testFileIndex(uint32_t index);
+
+extern int cur_pid;
+
+#include "systemcall.h"
 
 #endif

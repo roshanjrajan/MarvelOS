@@ -1,6 +1,35 @@
 #include "systemcall.h"
 
-int cur_pid = -1;
+
+
+void initialize_fops(){
+	stdin_fops.open = terminalOpen;
+	stdin_fops.close = terminalClose;
+	stdin_fops.read = terminalRead;
+	stdin_fops.write = dummy_write;
+	
+	stdout_fops.open = terminalOpen;
+	stdout_fops.close = terminalClose;
+	stdout_fops.read = dummy_read;
+	stdout_fops.write = terminalWrite;
+	
+	regfile_fops.open = fileOpen;
+	regfile_fops.close = fileClose;
+	regfile_fops.read = fileRead;
+	regfile_fops.write = fileWrite;
+	
+	directory_fops.open = directoryOpen;
+	directory_fops.close = directoryClose;
+	directory_fops.read = directoryRead;
+	directory_fops.write = directoryWrite;
+	
+	RTC_fops.open = RTCOpen;
+	RTC_fops.close = RTCClose;
+	RTC_fops.read = RTCRead;
+	RTC_fops.write = RTCWrite;
+	
+	cur_pid = -1;
+}
 
 void initialize_PCB_pointers() {
 	int index;
@@ -11,7 +40,7 @@ void initialize_PCB_pointers() {
 
 void initialize_FDT(int32_t pid) {
 	int index;
-	fdt = PCB_ptrs[pid]->process_fdt;
+	file_descriptor_entry_t * fdt = PCB_ptrs[pid]->process_fdt;
 
 	//Initialize all fdt entries
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
@@ -129,12 +158,12 @@ int32_t sys_execute (const uint8_t* command){
 	asm("movl %%esp, %0;"
 		:"=r"(ptr)
 		:
-		:"");
+		:"memory");
 	PCB_ptrs[pid] -> esp = ptr;
 	asm("movl %%ebp, %0;"
 		:"=r"(ptr)
 		:
-		:"");
+		:"memory");
 	PCB_ptrs[pid] -> ebp = ptr;
 	PCB_ptrs[pid] -> arg_ptr = args;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
@@ -148,6 +177,10 @@ int32_t sys_execute (const uint8_t* command){
 	// Perform context switch
  	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + (pid + 1) * FOUR_MB) - 4;//update the process's kernel-mode stack pointer
  	switch_to_user_mode(starting_adrs);
+	
+	
+	// POST HALT STUFF*****************
+	
 	
 	// asm volatile ("jump_point:");
 	return 0;
@@ -165,6 +198,7 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 
 int32_t sys_open (const uint8_t* filename){
 	int index;
+	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
 	if(strncmp((const int8_t *) filename,(const int8_t *) "stdin", 5) == 0) {
 		index = 0; 
 	}
@@ -230,6 +264,7 @@ int32_t sys_open (const uint8_t* filename){
 
 
 int32_t sys_close (int32_t fd) {
+	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
 	if(fd < 2 || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}

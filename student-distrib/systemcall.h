@@ -55,6 +55,8 @@ int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes);
 int32_t dummy_open (const uint8_t* filename);
 int32_t dummy_close (int32_t fd);
 
+void initialize_fops();
+
 typedef struct __attribute__((packed)) PCB {
 	int32_t pid;
 	int32_t parent_pid;
@@ -68,40 +70,17 @@ typedef struct __attribute__((packed)) PCB {
 PCB_t* PCB_ptrs[MAX_PROCESSES];
 
 //Populate our fops tables
-fops_table_t stdin_fops = {
-	.open = terminalOpen,
-	.close = terminalClose,
-	.read = terminalRead,
-	.write = dummy_write
-};
+fops_table_t stdin_fops;
 
-fops_table_t stdout_fops = {
-	.open = terminalOpen,
-	.close = terminalClose,
-	.read = dummy_read,
-	.write = terminalWrite
-};
+fops_table_t stdout_fops;
 
-fops_table_t regfile_fops = {
-	.open = fileOpen,
-	.close = fileClose,
-	.read = fileRead,
-	.write = fileWrite
-};
+fops_table_t regfile_fops;
 
-fops_table_t directory_fops = {
-	.open =  directoryOpen,
-	.close = directoryClose,
-	.read =  directoryRead,
-	.write = directoryWrite
-};
+fops_table_t directory_fops;
 
-fops_table_t RTC_fops = {
-	.open =  RTCOpen,
-	.close = RTCClose,
-	.read =  RTCRead,
-	.write = RTCWrite
-};
+fops_table_t RTC_fops;
+
+int cur_pid;
 
 #endif 
 

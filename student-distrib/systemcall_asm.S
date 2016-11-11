@@ -1,5 +1,7 @@
 
+//#define ASM     1
 //#include "systemcall.h"
+
 #define USER_CS 0x0023
 #define USER_DS 0x002B
 #define MAX_SYSCALL_NUM 9
@@ -55,8 +57,8 @@ invalid_syscall_num:
 	iret
 
 jmp_table: 
-	.long 	syscall
-	.long	switch_to_user_mode
+#	.long 	syscall
+#	.long	switch_to_user_mode
 	.long 	sys_halt
 	.long   sys_execute
 	.long   sys_read

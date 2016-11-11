@@ -208,7 +208,7 @@ int32_t fileOpen(const uint8_t* filename){
  * SIDE_EFFECTS: Fills in buffer to be printed
  */
 int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
-	
+	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
 	return read_data (fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
 }
 
