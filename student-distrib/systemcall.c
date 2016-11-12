@@ -266,13 +266,29 @@ int32_t sys_execute (const uint8_t* command){
 }
 
 int32_t sys_read (int32_t fd, void* buf, int32_t bytes) {
+	file_descriptor_entry_t * fd_table = PCB_ptrs[cur_pid]->process_fdt;
 
-	return 0;
+	/* Check if fd is valid index */
+	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+
+	/* Ensure file is in use */
+	if (fd_table[fd].flags == 0) return ERROR_VAL;
+
+	/* Call respective function */
+	return (fdt[fd].fops_pointer->read)(fd, buf, nbytes);
 }
 
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
+	file_descriptor_entry_t * fd_table = PCB_ptrs[cur_pid]->process_fdt;
 
-	return 0;
+	/* Check if fd is valid index */
+	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+
+	/* Ensure file is in use */
+	if (fd_table[fd].flags == 0) return ERROR_VAL;
+
+	/* Call respective function */
+	return (fdt[fd].fops_pointer->write)(fd, buf, nbytes);
 }
 
 int32_t sys_open (const uint8_t* filename){
