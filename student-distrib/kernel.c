@@ -189,6 +189,16 @@ entry (unsigned long magic, unsigned long addr)
 	//printf("Enabling Interrupts\n");
 	sti();
 
+	initialize_fops();
+	initialize_PCB_pointers();
+
+	/* Execute the first program (`shell') ... */
+
+	/* Spin (nicely, so we don't chew up cycles) */
+	asm volatile(".1: hlt; jmp .1;");
+}
+
+
 	
 	
 	// // TESTING Mp3 Checkpoint 2
@@ -343,12 +353,4 @@ entry (unsigned long magic, unsigned long addr)
 	//Page Fault
 	//int* i = 0;
 	//printf("%d \n", *i);
-
-	//initialize_PCB_pointers();
-
-	/* Execute the first program (`shell') ... */
-
-	/* Spin (nicely, so we don't chew up cycles) */
-	asm volatile(".1: hlt; jmp .1;");
-}
 

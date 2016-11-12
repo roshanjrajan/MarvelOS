@@ -10,7 +10,8 @@
 
 .globl 	syscall
 .globl	switch_to_user_mode
-.long  return_value
+.globl  return_value
+return_value: 		.long 0x0
 
 #Dispatcher function for system calls
 syscall:

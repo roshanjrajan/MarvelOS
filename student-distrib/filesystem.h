@@ -16,7 +16,6 @@
 #define FILESYSTEM_DIRECTORIES 17
 #define BUFFER_TEST_SIZE 1500
 #define FNAME_L 12
-#define ERROR_VAL -1
 
 // Simple preprocessor functions
 #define MIN(a,b) (((a)<(b))?(a):(b))

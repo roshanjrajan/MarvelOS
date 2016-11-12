@@ -12,6 +12,8 @@
  */
 void eh0(){
 	printf("EXCEPTION: DIVIDE ERROR");
+	//PCB_ptrs[cur_pid]->exception_flag = 1;
+	//sys_halt(255);
 	while(1);
 }
 

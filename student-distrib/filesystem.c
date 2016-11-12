@@ -57,7 +57,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 {
 	int i;
 	// Check if input dentry is null
-	if (dentry == NULL) return -1;
+	if (dentry == NULL) return ERROR_VAL;
 	
 	// For each file in the directory
 	for(i = 0; i < fileSysBootBlock->numDirectories; i++)
@@ -71,7 +71,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 		}
 	}
 	
-	return -1;
+	return ERROR_VAL;
 }
 
 
@@ -87,11 +87,11 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
 {
 	// Check if input dentry is null
-	if (dentry == NULL) return -1;
+	if (dentry == NULL) return ERROR_VAL;
 	
 	// Check if input index is valid
 	if(index >= fileSysBootBlock->numDirectories || index < 0) // Invalid Index
-		return -1;
+		return ERROR_VAL;
 	else
 	{
 		//Fill in dentry of the index
@@ -116,16 +116,20 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
 {
 	// Check if input buf is null or invalid inode input
-	if (buf == NULL) return -1;
+	if (buf == NULL) return ERROR_VAL;
 	if(inode >= fileSysBootBlock->numInodes || inode < 0)
-			return -1;
+			return ERROR_VAL;
 		
+	if(length < 0) {
+		return ERROR_VAL;
+	}
+
 	// Current fileInode
 	inode_t fileInode = *((inode_t *)(bootMemAddr + FILESYSTEM_BLOCKSIZE*(inode + 1)));
 	
 	// Check if offset is within file bounds
 	if(offset < 0 || offset >= fileInode.length)
-		return -1;
+		return ERROR_VAL;
 	
 
 	// Variables used to calculate various checks
@@ -213,7 +217,7 @@ int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes){
 	
 	// Check that file exists and fill dentry
 	if(read_dentry_by_index (index, &dentry) != 0)
-		return -1; // BAD FILE NAME
+		return ERROR_VAL; // BAD FILE NAME
 	
 	// return data read
 	return read_data (dentry.inodeNum, 0, buf, nbytes);
@@ -228,7 +232,7 @@ int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes){
  * SIDE_EFFECTS: none. 
  */
 int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes){
-	return -1;
+	return ERROR_VAL;
 }
 
 
@@ -283,7 +287,7 @@ int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
 		// Fill in dentry of index
 		
 		if(read_dentry_by_index (index, &dentry) != 0)
-			return -1; // Done with all of them
+			return ERROR_VAL; // Done with all of them
 		
 		
 		// copy filename to buffer
@@ -309,7 +313,7 @@ int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
  * SIDE_EFFECTS: none. 
  */
 int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes){
-	return -1;
+	return ERROR_VAL;
 }
 
 

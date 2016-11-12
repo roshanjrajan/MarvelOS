@@ -1,5 +1,10 @@
 #include "systemcall.h"
 
+// NEED TO DOUBLE CHECK THIS 
+PCB_t* PCB_ptrs[MAX_PROCESSES];
+file_descriptor_entry_t * fdt;
+int cur_pid;
+
 /* 
  * fileRead
  *
@@ -11,13 +16,11 @@
  * SIDE_EFFECTS: Fills in buffer to be printed
  */
 int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
-	//Make sure we have valid arguments
+	//Make sure we have file descriptor
 	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
-	if(nbytes < 0) {
-		return ERROR_VAL;
-	}
+
 	file_descriptor_entry_t * current_process_fdt = PCB_ptrs[cur_pid]->process_fdt;
 	return read_data (current_process_fdt[fd].inodeNum, current_process_fdt[fd].file_position, buf, nbytes);
 }
@@ -72,21 +75,22 @@ void initialize_FDT(int32_t pid) {
 
 	//Initialize stdin/stdout fops pointers, flags, and file positions
 	fdt[STDIN_INDEX_IN_FDT].fops_pointer = &stdin_fops; 
-	fdt[STDIN_INDEX_IN_FDT].flags = 1;
+	fdt[STDIN_INDEX_IN_FDT].flags = STDIN_FLAG;
 	fdt[STDIN_INDEX_IN_FDT].file_position = 0;
 	(*fdt[STDIN_INDEX_IN_FDT].fops_pointer->open)(NULL);
 
 	fdt[STDOUT_INDEX_IN_FDT].fops_pointer = &stdout_fops;
-	fdt[STDOUT_INDEX_IN_FDT].flags = 1;
+	fdt[STDOUT_INDEX_IN_FDT].flags = STDOUT_FLAG;
 	fdt[STDOUT_INDEX_IN_FDT].file_position = 0;
 	(*fdt[STDOUT_INDEX_IN_FDT].fops_pointer->open)(NULL);
 }
 
 
 int32_t sys_halt (uint8_t status) {
-	int index;
+	uint32_t parents_pid;
+	uint32_t EAX_VAL = (uint32_t) status + (uint32_t) PCB_ptrs[cur_pid]->exception_flag; // RET VAL
 
-	//Identify PID
+	//Identify parent pid
 	parents_pid = PCB_ptrs[cur_pid] -> parent_pid;
 	
 	//We are ending highest level process
@@ -108,16 +112,33 @@ int32_t sys_halt (uint8_t status) {
 		fdt = PCB_ptrs[parents_pid] -> process_fdt; //Update global fdt pointer
 		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
 		cur_pid = parents_pid;
-		//TODO: Restore EBP and ESP here with inline assembly ******************************
 
-
+		//Restore EBP and ESP
+		uint32_t register_val;
+		register_val = PCB_ptrs[cur_pid] -> esp;
+		//TODO: Double check the inline assembly
+		asm("movl %0, %%esp;"
+			:
+			:"r"(register_val)
+			:"memory");
+		register_val = PCB_ptrs[cur_pid] -> ebp;
+		asm("movl %0, %%ebp;"
+			:
+			:"r"(register_val)
+			:"memory");
 	}
 
-	//TODO: in all of our exception handlers, we need to devise a way to call sys_halt(256) instead of waiting
-			//in a while loop
+	// TODO: need to close all relevant FD
 
-	//TODO: Load EAX with the 8 bit argument using inline assembly ******************************
+	// TODO: fix Exception handlers to call sys_halt
 
+	// Load EAX with the status value
+
+		asm("movl %0, %%eax;"
+			:
+			:"r"(EAX_VAL)
+			:"memory");
+	
 	asm volatile("jmp jump_point");
 
 	//If we have reached this point, then there is an error
@@ -163,8 +184,6 @@ int32_t sys_execute (const uint8_t* command){
 		return ERROR_VAL;
 	}
 
-	//TODO: Cleanup some stuff in filesystem.c (user ERROR_VAL constant and check nBytes in read_data filesystem.c)
-
 	//Check to make sure file is an executable
 	uint8_t testBuffer[EXECUTABLE_CHECK_BUFFER_SIZE];
 	if(read_data(new_dentry.inodeNum, 0, testBuffer, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
@@ -196,6 +215,7 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] -> pid = pid;
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
 	cur_pid = pid;
+	PCB_ptrs[pid] -> exception_flag = 0;
 	PCB_ptrs[pid] -> pde.page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
 	PCB_ptrs[pid] -> pde.open_bits = 0;
 	PCB_ptrs[pid] -> pde.reserved_1 = 0;
@@ -213,10 +233,10 @@ int32_t sys_execute (const uint8_t* command){
 	//Initialize paging for the process image (corresponds to virtual address 128 MB)
 	page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[pid] -> pde;
 
-	//TODO: Perform loading procedure ******************************
-	//For loading procedure, use read_data to copy 4MB of program to its 4MB page in virtual memory
-	//make sure that read data copies directly to memory location -> we shouldn't use static buffer on stack
-	// (especially for such a large amount)
+	//Perform loading procedure
+	if(read_data(new_dentry.inodeNum, 0, (uint8_t *) PROGRAM_INIT_VIRTUAL_ADDR, FOUR_MB) == -1) {
+		return ERROR_VAL;
+	}
 
 	//Flush the TLB for each new program
 	clearTLB();
@@ -270,7 +290,7 @@ int32_t sys_open (const uint8_t* filename){
 		dentry_t new_dentry;
 
 		//Check to make sure FDT isn't full
-		while(index < MAX_NUM_FDT_ENTRIES && fdt[index].flags == 1) {
+		while(index < MAX_NUM_FDT_ENTRIES && fdt[index].flags > 0) {
 			index++;
 		}
 
@@ -297,20 +317,22 @@ int32_t sys_open (const uint8_t* filename){
 		fdt[index].file_position =0;
 
 		//Mark as used
-		fdt[index].flags = 1;
 
 		//Call the respective open function
 		switch(filetype) {
 			case RTC_DEVICE_FILETYPE:
 				fdt[index].fops_pointer = &RTC_fops;
+				fdt[index].flags = RTC_FLAG;
 				break;
 
 			case DIRECTORY_FILETYPE:
 				fdt[index].fops_pointer = &directory_fops;
+				fdt[index].flags = DIRECTORY_FLAG;
 				break;
 
 			case REGULAR_FILE_FILETYPE: 
 				fdt[index].fops_pointer = &regfile_fops;
+				fdt[index].flags = REGFILE_FLAG;
 				break;
 
 			default:

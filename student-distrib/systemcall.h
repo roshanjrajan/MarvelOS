@@ -23,6 +23,12 @@
 #define PROCESS_PAGING_INDEX 32 // (128 MB / 4 MB) = 32 (indexing starts at 0)
 #define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_MB
 
+#define STDIN_FLAG 1
+#define STDOUT_FLAG 2
+#define RTC_FLAG 3
+#define DIRECTORY_FLAG 4
+#define REGFILE_FLAG 5
+
 #define EXECUTABLE_FIRST_BYTE 0x7F
 #define EXECUTABLE_SECOND_BYTE 0x45
 #define EXECUTABLE_THIRD_BYTE 0x4C
@@ -79,12 +85,14 @@ typedef struct __attribute__((packed)) PCB {
 	pde_desc_t pde;
 	uint32_t esp;
 	uint32_t ebp;
+	uint8_t exception_flag : 1;
 	uint8_t * arg_ptr;
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 
-PCB_t* PCB_ptrs[MAX_PROCESSES];
+extern PCB_t* PCB_ptrs[MAX_PROCESSES];
 extern file_descriptor_entry_t * fdt;
+extern int cur_pid;
 
 //Here are our fops tables
 fops_table_t stdin_fops;
@@ -93,8 +101,4 @@ fops_table_t regfile_fops;
 fops_table_t directory_fops;
 fops_table_t RTC_fops;
 
-int cur_pid;
-
 #endif 
-
-
