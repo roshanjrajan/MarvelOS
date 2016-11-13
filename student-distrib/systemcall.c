@@ -18,7 +18,20 @@ int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 	return read_data(fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
 }
 
+
+
+
+/*  
+ * initialize_fops
+ *
+ * DESCRIPTION: Setup the initiliztion of the file operations for each of the 5 file types
+ * INPUT:  Nothing
+ * OUTPUT: Nothing
+ * SIDE_EFFECTS: Fills in fops for 5 file types
+ */
 void initialize_fops(){
+
+	// Initialize each of the fops table
 	stdin_fops.open = terminalOpen;
 	stdin_fops.close = terminalClose;
 	stdin_fops.read = terminalRead;
@@ -44,9 +57,19 @@ void initialize_fops(){
 	RTC_fops.read = RTCRead;
 	RTC_fops.write = RTCWrite;
 	
+	// Initilize current pid
 	cur_pid = -1;
 }
 
+
+/*  
+ * initialize_PCB_pointers
+ *
+ * DESCRIPTION: Initialize PCB Table
+ * INPUT:  Nothing
+ * OUTPUT: Nothing
+ * SIDE_EFFECTS: Fills in PCB table with each index as NULL
+ */
 void initialize_PCB_pointers() {
 	int index;
 	for(index = 0; index < MAX_PROCESSES; index ++) {
@@ -54,6 +77,14 @@ void initialize_PCB_pointers() {
 	}
 }
 
+/*  
+ * initialize_FDT
+ *
+ * DESCRIPTION: Initialize the FDT for each process
+ * INPUT:  int32_t pid - pid for current process
+ * OUTPUT: Nothing
+ * SIDE_EFFECTS: Initialize each entry in the fdt for each process
+ */
 void initialize_FDT(int32_t pid) {
 	int index;
 	fdt = PCB_ptrs[pid]->process_fdt;
@@ -70,21 +101,27 @@ void initialize_FDT(int32_t pid) {
 	fdt[STDIN_INDEX_IN_FDT].fops_pointer = &stdin_fops; 
 	fdt[STDIN_INDEX_IN_FDT].flags = STDIN_FLAG;
 	fdt[STDIN_INDEX_IN_FDT].file_position = 0;
-	//(*fdt[STDIN_INDEX_IN_FDT].fops_pointer->open)(NULL);
 
 	fdt[STDOUT_INDEX_IN_FDT].fops_pointer = &stdout_fops;
 	fdt[STDOUT_INDEX_IN_FDT].flags = STDOUT_FLAG;
 	fdt[STDOUT_INDEX_IN_FDT].file_position = 0;
-	//(*fdt[STDOUT_INDEX_IN_FDT].fops_pointer->open)(NULL);
 }
 
-
+/*  
+ * sys_halt
+ *
+ * DESCRIPTION: Halt the current process
+ * INPUT:  uint8_t status - the status of the current process
+ * OUTPUT: int32_t retVal - NOT USED -> stored in eax directly
+ * SIDE_EFFECTS: End current process and setup for parent process
+ */
 int32_t sys_halt (uint8_t status) {
 	uint32_t parents_pid;
 	eax_val = (uint32_t) status + (uint32_t) PCB_ptrs[cur_pid]->exception_flag; // RET VAL
 	int32_t index;
 	uint32_t register_val_esp, register_val_ebp;
 
+	// store current esp and ebp
 	asm("movl %%esp, %0;"
 		:"=r"(register_val_esp)
 		:
@@ -108,31 +145,30 @@ int32_t sys_halt (uint8_t status) {
 	//We are ending highest level process
 	if(parents_pid == -1) {
 		// Restart shell
-		//fdt = NULL;
 		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
 		cur_pid = -1;
-		//page_directory[PROCESS_PAGING_INDEX].present = 0; //Disable paging for virtual program space
 		sys_execute((uint8_t *)"shell");
 	}
 
 	//We are ending a child process
 	else{
-		//Restore EBP and ESP
-		
+		//Restore parent EBP and ESP
 		register_val_esp = PCB_ptrs[cur_pid] -> esp;
-
 		register_val_ebp = PCB_ptrs[cur_pid] -> ebp;
 
+		// restore parent process info
 		page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[parents_pid] -> pde; //Restore paging for parent process
 		clearTLB();
 		fdt = PCB_ptrs[parents_pid] -> process_fdt; //Update global fdt pointer
 		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
 		cur_pid = parents_pid;
+
+		// Update TSS stack pointer to parent stack pointer
  		tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - cur_pid * EIGHT_KB) - 4;
 	}
 
 	
-	
+	// Store esp and ebp
 	asm("movl %0, %%esp;"
 		:
 		:"r"(register_val_esp)
@@ -143,17 +179,27 @@ int32_t sys_halt (uint8_t status) {
 		:"r"(register_val_ebp)
 		:"memory");	
 
+	// Jump to end of execute
 	asm volatile("jmp jump_point");
 
 	//If we have reached this point, then there is an error
 	return ERROR_VAL;
 }
 
+/*  
+ * sys_execute
+ *
+ * DESCRIPTION: Initialize new process
+ * INPUT:  uint8_t* command - filename + args
+ * OUTPUT: int32_t retVal - NOT USED -> stored in eax directly
+ * SIDE_EFFECTS: Begin and initialize new process
+ */
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
 	uint8_t * args = NULL;
 	uint8_t fname[32];
 	int i;
+
 	//Make sure arg is valid
 	if(command == NULL) {
 		return ERROR_VAL;
@@ -248,6 +294,8 @@ int32_t sys_execute (const uint8_t* command){
 
 	// Perform context switch
  	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - pid * EIGHT_KB) - 4;//update the process's kernel-mode stack pointer
+
+ 	// Store current esp and ebp
 	uint32_t ptr;
 	asm("movl %%esp, %0;"
 		:"=r"(ptr)
@@ -260,8 +308,10 @@ int32_t sys_execute (const uint8_t* command){
 		:"memory");
 	PCB_ptrs[pid] -> ebp = ptr;
 
+	// Switch to user program
  	switch_to_user_mode(program_eip);
 	
+	// End of execture
 	asm volatile ("jump_point:");
 	asm volatile ("leave");
 	// Load EAX with the status value
@@ -275,6 +325,16 @@ int32_t sys_execute (const uint8_t* command){
 	return ERROR_VAL;
 }
 
+/*  
+ * sys_read
+ *
+ * DESCRIPTION: Read depending on file type
+ * INPUT:  int32_t fd - index into fdt
+ *		   void* buf - buffer to store data
+ * 		   int32_t nbytes - number of bytes to be copied
+ * OUTPUT: int32_t retVal - number of bytes copied
+ * SIDE_EFFECTS: Read the different types of files
+ */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	/* Check if fd is valid index */
 	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
@@ -286,6 +346,16 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	return (fdt[fd].fops_pointer->read)(fd, buf, nbytes);
 }
 
+/*  
+ * sys_write
+ *
+ * DESCRIPTION: Write data in buffer depending on file type
+ * INPUT:  int32_t fd - index into fdt
+ *		   const void* buf - buffer to be written
+ * 		   int32_t nbytes - number of bytes to be written
+ * OUTPUT: int32_t retVal - number of bytes written
+ * SIDE_EFFECTS: Write the buffer depending on the file type
+ */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 	/* Check if fd is valid index */
 	if(fd == 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
@@ -297,12 +367,23 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 	return (fdt[fd].fops_pointer->write)(fd, buf, nbytes);
 }
 
+/*  
+ * sys_open
+ *
+ * DESCRIPTION: Open the file type
+ * INPUT:  const uint8_t* filename - name of file to be opened
+ * OUTPUT: int32_t retVal - error or index in fdt
+ * SIDE_EFFECTS: Initilize behavior of fdt entries
+ */
 int32_t sys_open (const uint8_t* filename){
 	int index;
 	fdt = PCB_ptrs[cur_pid]->process_fdt;
+
+	// Check if opening stdin
 	if(strncmp((const int8_t *) filename,(const int8_t *) "stdin", 5) == 0) {
 		index = 0; 
 	}
+	// Check if opening stdout
 	else if(strncmp((const int8_t *) filename, (const int8_t *) "stdout", 6) == 0) {
 		index = 1;
 	}
@@ -359,13 +440,21 @@ int32_t sys_open (const uint8_t* filename){
 
 			default:
 				return ERROR_VAL;
-		}	
+		}
+		// Call the open function
 		(*fdt[index].fops_pointer->open)(filename);
 	}
 	return index;
 }
 
-
+/*  
+ * sys_close
+ *
+ * DESCRIPTION: Close file
+ * INPUT:  int32_t fd - index in fdt
+ * OUTPUT: int32_t retVal - error or not
+ * SIDE_EFFECTS: Call the close function and reset flag
+ */
 int32_t sys_close (int32_t fd) {
 	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
 	if(fd < 2 || fd > MAX_NUM_FDT_ENTRIES) {
@@ -377,6 +466,15 @@ int32_t sys_close (int32_t fd) {
 	return 0;
 }
 
+/*  
+ * sys_getargs
+ *
+ * DESCRIPTION: Close file
+ * INPUT:  uint8_t* buf - buffer to copy args into
+ *		   int32_t nbytes - number of bytes to copy
+ * OUTPUT: 0 (success)
+ * SIDE_EFFECTS: Get the arguments and copy 
+ */
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
 	strncpy((int8_t *) buf, (const int8_t *) PCB_ptrs[cur_pid] -> arg_ptr, nbytes);
 	return 0;
@@ -397,18 +495,54 @@ int32_t sys_sigreturn (void){
 	return 0;
 }
 
+/*  
+ * dummy_read
+ *
+ * DESCRIPTION: DOES NOTHING
+ * INPUT:  int32_t fd - index into fdt
+ *		   void* buf - buffer to store data
+ * 		   int32_t nbytes - number of bytes to be copied
+ * OUTPUT: ERROR
+ * SIDE_EFFECTS: NONE
+ */
 int32_t dummy_read (int32_t fd, void* buf, int32_t nbytes){
 	return ERROR_VAL;
 }
 
+/*  
+ * dummy_write
+ *
+ * DESCRIPTION: DOES NOTHING
+ * INPUT:  int32_t fd - index into fdt
+ *		   const void* buf - buffer to be written
+ * 		   int32_t nbytes - number of bytes to be written
+ * OUTPUT: ERROR
+ * SIDE_EFFECTS: NONE
+ */
 int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes){
 	return ERROR_VAL;
 }
 
+/*  
+ * dummy_open
+ *
+ * DESCRIPTION: DOES NOTHING
+ * INPUT:  const uint8_t* filename - name of file to be opened
+ * OUTPUT: ERROR
+ * SIDE_EFFECTS: NONE
+ */
 int32_t dummy_open (const uint8_t* filename){
 	return ERROR_VAL;
 }
 
+/*  
+ * dummy_close
+ *
+ * DESCRIPTION: DOES NOTHING
+ * INPUT:  int32_t fd - index in fdt
+ * OUTPUT: ERROR
+ * SIDE_EFFECTS: NONE
+ */
 int32_t dummy_close (int32_t fd){
 	return ERROR_VAL;
 }

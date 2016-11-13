@@ -8,6 +8,7 @@
 #include "types.h"
 #include "paging.h"
 
+// General Constants
 #define RTC_DEVICE_FILETYPE 0
 #define DIRECTORY_FILETYPE 1
 #define REGULAR_FILE_FILETYPE 2
@@ -23,6 +24,7 @@
 #define PROCESS_PAGING_INDEX 32 // (128 MB / 4 MB) = 32 (indexing starts at 0)
 #define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_MB
 
+// FLAGS FOR FDT
 #define UNUSED_FLAG 0
 #define STDIN_FLAG 1
 #define STDOUT_FLAG 2
@@ -30,16 +32,19 @@
 #define DIRECTORY_FLAG 4
 #define REGFILE_FLAG 5
 
+// BYTES TO CHECK EXECUTABLE
 #define EXECUTABLE_FIRST_BYTE 0x7F
 #define EXECUTABLE_SECOND_BYTE 0x45
 #define EXECUTABLE_THIRD_BYTE 0x4C
 #define EXECUTABLE_FOURTH_BYTE 0x46
 #define EXECUTABLE_INSTRUCTION_START_BYTE 24
 
+// Functions used
 extern void switch_to_user_mode(uint32_t starting_addr);
 extern void initialize_FDT(int32_t pid);
 extern void initialize_PCB_pointers();
 extern int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
+void initialize_fops();
 
 //System call dispatcher function
 extern int32_t syscall();
@@ -62,8 +67,8 @@ int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes);
 int32_t dummy_open (const uint8_t* filename);
 int32_t dummy_close (int32_t fd);
 
-void initialize_fops();
 
+// Structs used
 typedef	struct __attribute__((packed)) fops_table
 {
 	int32_t (*open)(const uint8_t*);
@@ -91,6 +96,7 @@ typedef struct __attribute__((packed)) PCB {
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 
+// Global variables used
 PCB_t* PCB_ptrs[MAX_PROCESSES];
 file_descriptor_entry_t * fdt;
 int cur_pid;

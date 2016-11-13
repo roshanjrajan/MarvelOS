@@ -189,13 +189,12 @@ entry (unsigned long magic, unsigned long addr)
 	//printf("Enabling Interrupts\n");
 	sti();
 
+	// Initialize behaviors for USER programs
 	initialize_fops();
 	initialize_PCB_pointers();
 
+	// Open the terminal for all stdin/stdout
 	terminalOpen((uint8_t *) "");
-
-	//asm volatile("movl $4, %eax");
-	//asm volatile("int $0x80");
 
 	/* Execute the first program (`shell') ... */
 	sys_execute((uint8_t *)"shell");

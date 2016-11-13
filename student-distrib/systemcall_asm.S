@@ -4,22 +4,27 @@
 #define USER_DS 0x002B
 #define MAX_SYSCALL_NUM 10
 #define ERROR_VAL -1
-#define FIRST_ARG_OFFSET 8
+#define FIRST_ARG_OFFSET 4
 #define USER_ESP 0x83FFFFC
+#define IF_MASK 0x200
 
 
 .text
 
+#some global functions
 .globl 	syscall
 .globl	switch_to_user_mode
-.globl  return_value
-return_value: 		.long 0x0
 
-#Dispatcher function for system calls
+
+# syscall
+# DESCRIPTION: Dispatcher function for system calls
+# INPUT: int system call number - stored directly into eax
+# OUTPUT: returns -1 if invalid system call number; else returns output of system call handler
+# SIDE_EFFECTS: Calls a system handler
+# 
 syscall:
 	#initial bookeeping procedure
-	#pushl %ebp
-	#movl %esp, %ebp
+
 	pushl %ebx
 	pushl %ecx
 	pushl %edx
@@ -38,29 +43,24 @@ syscall:
 
 	#teardown stack
 	addl $12, %esp
-	movl %eax, return_value
 	popl %edi
 	popl %esi
 	popl %edx
 	popl %ecx
 	popl %ebx
-	movl return_value, %eax
-	#leave
 	iret
 
-#Function for returning error for invalid system call number
-invalid_syscall_num: 
-	movl $ERROR_VAL, %eax
-	movl %eax, return_value
-	popl %edi
-	popl %esi
-	popl %edx
-	popl %ecx
-	popl %ebx
-	movl return_value, %eax
-	#leave
-	iret
+	#Return error for invalid system call number
+	invalid_syscall_num: 
+		movl $ERROR_VAL, %eax
+		popl %edi
+		popl %esi
+		popl %edx
+		popl %ecx
+		popl %ebx
+		iret
 
+#Jump table for system call handler functions
 jmp_table: 
 	.long 	0x0
 	.long 	sys_halt
@@ -75,20 +75,39 @@ jmp_table:
 	.long	sys_sigreturn
 
 
-#Set up our iret context and switch to user mode
+# switch_to_user_mode
+# DESCRIPTION: Set up our iret context and switch to user mode
+# INPUT: uint32_t program_eip - correct eip for program to execute in user mode
+# OUTPUT: none
+# SIDE_EFFECTS: Pushes iret context to stack and calls iret to enter user mode
+# 
 switch_to_user_mode:
-
-	#initial bookeeping procedure
-
+	
+	#mask interrupts
 	cli
-	#movl FIRST_ARG_OFFSET(%ebp), %ecx
-	movl 4(%esp), %ecx
+
+	#move program_eip into ECX
+	movl FIRST_ARG_OFFSET(%esp), %ecx
+	
+	#Store user data segment in ds
 	mov $USER_DS, %eax
 	mov %ax, %ds
+
+	#push the user data segment
 	pushl $USER_DS
+
+	#push the address of the bottom of the program page
 	pushl $USER_ESP
-	sti
+	
+	#reenable IF and push to stack
 	pushf
+	popl %eax
+	orl $IF_MASK, %eax
+	pushl %eax
+	
+	#push user code segment to stack
 	pushl $USER_CS
+
+	#push program eip to stack
 	push %ecx
 	iret
