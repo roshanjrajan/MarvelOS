@@ -19,10 +19,11 @@
 #define EIGHT_MB 0x00800000
 #define FOUR_MB 0x00400000
 #define EIGHT_KB 0x00002000
-#define PROGRAM_INIT_VIRTUAL_ADDR 0x08000000
+#define PROGRAM_INIT_VIRTUAL_ADDR 0x08048000
 #define PROCESS_PAGING_INDEX 32 // (128 MB / 4 MB) = 32 (indexing starts at 0)
 #define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_MB
 
+#define UNUSED_FLAG 0
 #define STDIN_FLAG 1
 #define STDOUT_FLAG 2
 #define RTC_FLAG 3
@@ -90,9 +91,10 @@ typedef struct __attribute__((packed)) PCB {
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 
-extern PCB_t* PCB_ptrs[MAX_PROCESSES];
-extern file_descriptor_entry_t * fdt;
-extern int cur_pid;
+PCB_t* PCB_ptrs[MAX_PROCESSES];
+file_descriptor_entry_t * fdt;
+int cur_pid;
+uint32_t eax_val;
 
 //Here are our fops tables
 fops_table_t stdin_fops;

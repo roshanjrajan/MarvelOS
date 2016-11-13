@@ -1,7 +1,5 @@
 #include "idt_init.h"
 
-
-
 /*
  * eh0
  * DESCRIPTION: Exception handler 0 as specified in the IDT
@@ -12,9 +10,8 @@
  */
 void eh0(){
 	printf("EXCEPTION: DIVIDE ERROR");
-	//PCB_ptrs[cur_pid]->exception_flag = 1;
-	//sys_halt(255);
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -27,7 +24,8 @@ void eh0(){
  */
 void eh2(){
 	printf("EXCEPTION: NMI INTERRUPT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -40,7 +38,8 @@ void eh2(){
  */
 void eh3(){
 	printf("EXCEPTION: BREAKPOINT");
-	while(1);//
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -53,7 +52,8 @@ void eh3(){
  */
 void eh4(){
 	printf("EXCEPTION: OVERFLOW");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -66,7 +66,8 @@ void eh4(){
  */
 void eh5(){
 	printf("EXCEPTION: BOUND RANGE EXCEEDED");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -79,7 +80,8 @@ void eh5(){
  */
 void eh6(){
 	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -92,7 +94,8 @@ void eh6(){
  */
 void eh7(){
 	printf("EXCEPTION: DEVICE NOT AVAILABLE");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -104,7 +107,8 @@ void eh7(){
  */
 void eh8(){
 	printf("EXCEPTION: DOUBLE FAULT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -117,7 +121,8 @@ void eh8(){
  */
 void eh9(){
 	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -130,7 +135,8 @@ void eh9(){
  */
 void eh10(){
 	printf("EXCEPTION: INVALID TSS");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -143,7 +149,8 @@ void eh10(){
  */
 void eh11(){
 	printf("EXCEPTION: SEGMENT NOT PRESENT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -156,7 +163,8 @@ void eh11(){
  */
 void eh12(){
 	printf("EXCEPTION: STACK SEGMENT FAULT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -169,7 +177,8 @@ void eh12(){
  */
 void eh13(){
 	printf("EXCEPTION: GENERAL PROTECTION");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -182,7 +191,19 @@ void eh13(){
  */
 void eh14(){
 	printf("EXCEPTION: PAGE FAULT");
+
+	uint32_t* cr2_val;
+	asm("movl %%cr2, %0;"
+		:"=r"(cr2_val)
+		:
+		:"memory");
+	printf("\nCR2_val:           %x", cr2_val);
 	while(1);
+
+
+
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -195,7 +216,8 @@ void eh14(){
  */
 void eh16(){
 	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -208,8 +230,10 @@ void eh16(){
  */
 void eh17(){
 	printf("EXCEPTION: ALIGNMENT CHECK");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
+
 /*
  * eh18
  * DESCRIPTION: Exception handler 18 as specified in the IDT
@@ -220,7 +244,8 @@ void eh17(){
  */
 void eh18(){
 	printf("EXCEPTION: MACHINE CHECK");	
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -232,7 +257,8 @@ void eh18(){
  */
 void eh19(){
 	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -335,7 +361,7 @@ void init_syscall(){
 	// enter data for single system call entry in IDT
 	idt[SCALL_LOC].seg_selector = KERNEL_CS;
 	idt[SCALL_LOC].reserved4 = 0;
-	idt[SCALL_LOC].reserved3 = 0;
+	idt[SCALL_LOC].reserved3 = 1;
 	idt[SCALL_LOC].reserved2 = 1;
 	idt[SCALL_LOC].reserved1 = 1;
 	idt[SCALL_LOC].size = 1;

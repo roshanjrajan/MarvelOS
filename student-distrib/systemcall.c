@@ -1,10 +1,5 @@
 #include "systemcall.h"
 
-// NEED TO DOUBLE CHECK THIS 
-PCB_t* PCB_ptrs[MAX_PROCESSES];
-file_descriptor_entry_t * fdt;
-int cur_pid;
-
 /* 
  * fileRead
  *
@@ -20,9 +15,7 @@ int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
-
-	file_descriptor_entry_t * current_process_fdt = PCB_ptrs[cur_pid]->process_fdt;
-	return read_data (current_process_fdt[fd].inodeNum, current_process_fdt[fd].file_position, buf, nbytes);
+	return read_data(fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
 }
 
 void initialize_fops(){
@@ -63,82 +56,93 @@ void initialize_PCB_pointers() {
 
 void initialize_FDT(int32_t pid) {
 	int index;
-	file_descriptor_entry_t * fdt = PCB_ptrs[pid]->process_fdt;
+	fdt = PCB_ptrs[pid]->process_fdt;
 
 	//Initialize all fdt entries
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
 		fdt[index].fops_pointer = NULL;
 		fdt[index].inodeNum = NULL;
 		fdt[index].file_position = -1;
-		fdt[index].flags=0;
+		fdt[index].flags=UNUSED_FLAG;
 	}
 
 	//Initialize stdin/stdout fops pointers, flags, and file positions
 	fdt[STDIN_INDEX_IN_FDT].fops_pointer = &stdin_fops; 
 	fdt[STDIN_INDEX_IN_FDT].flags = STDIN_FLAG;
 	fdt[STDIN_INDEX_IN_FDT].file_position = 0;
-	(*fdt[STDIN_INDEX_IN_FDT].fops_pointer->open)(NULL);
+	//(*fdt[STDIN_INDEX_IN_FDT].fops_pointer->open)(NULL);
 
 	fdt[STDOUT_INDEX_IN_FDT].fops_pointer = &stdout_fops;
 	fdt[STDOUT_INDEX_IN_FDT].flags = STDOUT_FLAG;
 	fdt[STDOUT_INDEX_IN_FDT].file_position = 0;
-	(*fdt[STDOUT_INDEX_IN_FDT].fops_pointer->open)(NULL);
+	//(*fdt[STDOUT_INDEX_IN_FDT].fops_pointer->open)(NULL);
 }
 
 
 int32_t sys_halt (uint8_t status) {
 	uint32_t parents_pid;
-	uint32_t EAX_VAL = (uint32_t) status + (uint32_t) PCB_ptrs[cur_pid]->exception_flag; // RET VAL
+	eax_val = (uint32_t) status + (uint32_t) PCB_ptrs[cur_pid]->exception_flag; // RET VAL
+	int32_t index;
+	uint32_t register_val_esp, register_val_ebp;
+
+	asm("movl %%esp, %0;"
+		:"=r"(register_val_esp)
+		:
+		:"memory");
+
+	asm("movl %%ebp, %0;"
+		:"=r"(register_val_ebp)
+		:
+		:"memory");
 
 	//Identify parent pid
 	parents_pid = PCB_ptrs[cur_pid] -> parent_pid;
 	
+	//Close all relevant FD
+	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
+		if(fdt[index].flags != UNUSED_FLAG) {
+			(*fdt[index].fops_pointer->close)(index);
+		}
+	}
+
 	//We are ending highest level process
 	if(parents_pid == -1) {
-
-		//TODO: AT this point, we just have to launch the shell again ******************************
-
-
-		//Disable paging for virtual program space
-		// page_directory[PROCESS_PAGING_INDEX].present = 0;
-		// fdt = NULL;
-		// PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
-		// cur_pid = -1;
+		// Restart shell
+		//fdt = NULL;
+		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
+		cur_pid = -1;
+		//page_directory[PROCESS_PAGING_INDEX].present = 0; //Disable paging for virtual program space
+		sys_execute((uint8_t *)"shell");
 	}
 
 	//We are ending a child process
 	else{
+		//Restore EBP and ESP
+		
+		register_val_esp = PCB_ptrs[cur_pid] -> esp;
+
+		register_val_ebp = PCB_ptrs[cur_pid] -> ebp;
+
 		page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[parents_pid] -> pde; //Restore paging for parent process
+		clearTLB();
 		fdt = PCB_ptrs[parents_pid] -> process_fdt; //Update global fdt pointer
 		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
 		cur_pid = parents_pid;
-
-		//Restore EBP and ESP
-		uint32_t register_val;
-		register_val = PCB_ptrs[cur_pid] -> esp;
-		//TODO: Double check the inline assembly
-		asm("movl %0, %%esp;"
-			:
-			:"r"(register_val)
-			:"memory");
-		register_val = PCB_ptrs[cur_pid] -> ebp;
-		asm("movl %0, %%ebp;"
-			:
-			:"r"(register_val)
-			:"memory");
+ 		tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - cur_pid * EIGHT_KB) - 4;
 	}
 
-	// TODO: need to close all relevant FD
-
-	// TODO: fix Exception handlers to call sys_halt
-
-	// Load EAX with the status value
-
-		asm("movl %0, %%eax;"
-			:
-			:"r"(EAX_VAL)
-			:"memory");
 	
+	
+	asm("movl %0, %%esp;"
+		:
+		:"r"(register_val_esp)
+		:"memory");
+
+	asm("movl %0, %%ebp;"
+		:
+		:"r"(register_val_ebp)
+		:"memory");	
+
 	asm volatile("jmp jump_point");
 
 	//If we have reached this point, then there is an error
@@ -152,6 +156,16 @@ int32_t sys_execute (const uint8_t* command){
 	int i;
 	//Make sure arg is valid
 	if(command == NULL) {
+		return ERROR_VAL;
+	}
+
+	//Find the next available process id 
+	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
+		pid++;
+	}
+	
+	//Check if we are already running the maximum number of processes
+	if(pid == MAX_PROCESSES){
 		return ERROR_VAL;
 	}
 
@@ -195,20 +209,27 @@ int32_t sys_execute (const uint8_t* command){
 	}
 
 	//Determine the offset from which we start reading instructions in the program
-	uint32_t program_eip = 0;
-	if(read_data(new_dentry.inodeNum, EXECUTABLE_INSTRUCTION_START_BYTE, (uint8_t *) program_eip, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
+	uint32_t program_eip;
+	if(read_data(new_dentry.inodeNum, EXECUTABLE_INSTRUCTION_START_BYTE, (uint8_t *) &program_eip, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
 		return ERROR_VAL;
 	}
 
-	//Find the next available process id 
-	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
-		pid++;
-	}
-	
-	//Check if we are already running the maximum number of processes
-	if(pid == MAX_PROCESSES){
-		return ERROR_VAL;
-	}
+
+	//Initialize paging for the process image (corresponds to virtual address 128 MB)
+	page_directory[PROCESS_PAGING_INDEX].page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
+	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
+	page_directory[PROCESS_PAGING_INDEX].reserved_1 = 0;
+	page_directory[PROCESS_PAGING_INDEX].page_size = 1;
+	page_directory[PROCESS_PAGING_INDEX].reserved_2 = 0;
+	page_directory[PROCESS_PAGING_INDEX].accessed = 0;
+	page_directory[PROCESS_PAGING_INDEX].cache_disable = 0;
+	page_directory[PROCESS_PAGING_INDEX].write_through = 0;
+	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 1;
+	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1;
+	page_directory[PROCESS_PAGING_INDEX].present = 1;
+
+	//Flush the TLB for each new program
+	clearTLB();
 
 	//Start populating PCB data
 	PCB_ptrs[pid] = (PCB_t *) EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
@@ -216,33 +237,17 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
-	PCB_ptrs[pid] -> pde.page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
-	PCB_ptrs[pid] -> pde.open_bits = 0;
-	PCB_ptrs[pid] -> pde.reserved_1 = 0;
-	PCB_ptrs[pid] -> pde.page_size = 1;
-	PCB_ptrs[pid] -> pde.reserved_2 = 0;
-	PCB_ptrs[pid] -> pde.accessed = 0;
-	PCB_ptrs[pid] -> pde.cache_disable = 0;
-	PCB_ptrs[pid] -> pde.write_through = 0;
-	PCB_ptrs[pid] -> pde.user_supervisor = 0;
-	PCB_ptrs[pid] -> pde.read_write_permissions = 1;
-	PCB_ptrs[pid] -> pde.present = 1;
+	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
 	PCB_ptrs[pid] -> arg_ptr = args;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
-
-	//Initialize paging for the process image (corresponds to virtual address 128 MB)
-	page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[pid] -> pde;
 
 	//Perform loading procedure
 	if(read_data(new_dentry.inodeNum, 0, (uint8_t *) PROGRAM_INIT_VIRTUAL_ADDR, FOUR_MB) == -1) {
 		return ERROR_VAL;
 	}
 
-	//Flush the TLB for each new program
-	clearTLB();
-
 	// Perform context switch
- 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + (pid + 1) * FOUR_MB) - 4;//update the process's kernel-mode stack pointer
+ 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - pid * EIGHT_KB) - 4;//update the process's kernel-mode stack pointer
 	uint32_t ptr;
 	asm("movl %%esp, %0;"
 		:"=r"(ptr)
@@ -259,33 +264,34 @@ int32_t sys_execute (const uint8_t* command){
 	
 	asm volatile ("jump_point:");
 	asm volatile ("leave");
+	// Load EAX with the status value
+	asm("movl %0, %%eax;"
+		:
+		:"r"(eax_val)
+		:"memory");
 	asm volatile ("ret");
 
 	//If we have reached this point, then there is an error
 	return ERROR_VAL;
 }
 
-int32_t sys_read (int32_t fd, void* buf, int32_t bytes) {
-	file_descriptor_entry_t * fd_table = PCB_ptrs[cur_pid]->process_fdt;
-
+int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	/* Check if fd is valid index */
 	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
 
 	/* Ensure file is in use */
-	if (fd_table[fd].flags == 0) return ERROR_VAL;
+	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
 
 	/* Call respective function */
 	return (fdt[fd].fops_pointer->read)(fd, buf, nbytes);
 }
 
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
-	file_descriptor_entry_t * fd_table = PCB_ptrs[cur_pid]->process_fdt;
-
 	/* Check if fd is valid index */
-	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	if(fd == 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
 
 	/* Ensure file is in use */
-	if (fd_table[fd].flags == 0) return ERROR_VAL;
+	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
 
 	/* Call respective function */
 	return (fdt[fd].fops_pointer->write)(fd, buf, nbytes);
@@ -293,7 +299,7 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 
 int32_t sys_open (const uint8_t* filename){
 	int index;
-	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
+	fdt = PCB_ptrs[cur_pid]->process_fdt;
 	if(strncmp((const int8_t *) filename,(const int8_t *) "stdin", 5) == 0) {
 		index = 0; 
 	}
@@ -306,7 +312,7 @@ int32_t sys_open (const uint8_t* filename){
 		dentry_t new_dentry;
 
 		//Check to make sure FDT isn't full
-		while(index < MAX_NUM_FDT_ENTRIES && fdt[index].flags > 0) {
+		while(index < MAX_NUM_FDT_ENTRIES && fdt[index].flags != UNUSED_FLAG) {
 			index++;
 		}
 
@@ -367,7 +373,7 @@ int32_t sys_close (int32_t fd) {
 	}
 
 	(*fdt[fd].fops_pointer->close)(fd);
-	fdt[fd].flags = 0;
+	fdt[fd].flags = UNUSED_FLAG;
 	return 0;
 }
 

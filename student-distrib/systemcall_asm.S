@@ -2,9 +2,11 @@
 
 #define USER_CS 0x0023
 #define USER_DS 0x002B
-#define MAX_SYSCALL_NUM 9
+#define MAX_SYSCALL_NUM 10
 #define ERROR_VAL -1
 #define FIRST_ARG_OFFSET 8
+#define USER_ESP 0x83FFFFC
+
 
 .text
 
@@ -16,9 +18,13 @@ return_value: 		.long 0x0
 #Dispatcher function for system calls
 syscall:
 	#initial bookeeping procedure
-	pushl %ebp
-	movl %esp, %ebp
-	pusha
+	#pushl %ebp
+	#movl %esp, %ebp
+	pushl %ebx
+	pushl %ecx
+	pushl %edx
+	pushl %esi
+	pushl %edi
 
 	#check for valid syscall number
 	cmpl $MAX_SYSCALL_NUM, %eax
@@ -33,21 +39,30 @@ syscall:
 	#teardown stack
 	addl $12, %esp
 	movl %eax, return_value
-	popa
+	popl %edi
+	popl %esi
+	popl %edx
+	popl %ecx
+	popl %ebx
 	movl return_value, %eax
-	leave
+	#leave
 	iret
 
 #Function for returning error for invalid system call number
 invalid_syscall_num: 
 	movl $ERROR_VAL, %eax
 	movl %eax, return_value
-	popa
+	popl %edi
+	popl %esi
+	popl %edx
+	popl %ecx
+	popl %ebx
 	movl return_value, %eax
-	leave
+	#leave
 	iret
 
 jmp_table: 
+	.long 	0x0
 	.long 	sys_halt
 	.long   sys_execute
 	.long   sys_read
@@ -64,21 +79,15 @@ jmp_table:
 switch_to_user_mode:
 
 	#initial bookeeping procedure
-	pushl %ebp
-	movl %esp, %ebp
 
 	cli
-	movl FIRST_ARG_OFFSET(%ebp), %ecx
-	popl %ebp
+	#movl FIRST_ARG_OFFSET(%ebp), %ecx
+	movl 4(%esp), %ecx
 	mov $USER_DS, %eax
 	mov %ax, %ds
-	mov %ax, %es
-	mov %ax, %fs
-	mov %ax, %gs
-
-	mov %esp, %eax
 	pushl $USER_DS
-	pushl %eax
+	pushl $USER_ESP
+	sti
 	pushf
 	pushl $USER_CS
 	push %ecx

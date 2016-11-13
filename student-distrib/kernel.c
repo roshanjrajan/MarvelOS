@@ -192,7 +192,14 @@ entry (unsigned long magic, unsigned long addr)
 	initialize_fops();
 	initialize_PCB_pointers();
 
+	terminalOpen((uint8_t *) "");
+
+	//asm volatile("movl $4, %eax");
+	//asm volatile("int $0x80");
+
 	/* Execute the first program (`shell') ... */
+	sys_execute((uint8_t *)"shell");
+
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	asm volatile(".1: hlt; jmp .1;");
