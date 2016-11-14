@@ -487,12 +487,12 @@ int32_t sys_vidmap (uint8_t** screen_start){
 
 int32_t sys_sethandler (int32_t signum, void* handler_address){
 	
-	return 0;
+	return ERROR_VAL;
 }
 
 int32_t sys_sigreturn (void){
 	
-	return 0;
+	return ERROR_VAL;
 }
 
 /*  
