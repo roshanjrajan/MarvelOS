@@ -5,6 +5,7 @@
 #include "i8259.h"
 #include "RTC.h"
 #include "terminal.h"
+#include "systemcall.h"
 
 // GENERAL CONSTANTS
 #define SLAVE_IRQ 2

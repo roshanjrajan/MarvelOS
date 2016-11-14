@@ -188,123 +188,140 @@ entry (unsigned long magic, unsigned long addr)
 	
 	//printf("Enabling Interrupts\n");
 	sti();
-	
-	
-	// TESTING Mp3 Checkpoint 2
-	terminalOpen(NULL);
-	int8_t * string = "Press ENTER to begin tests\n";
-	terminalWrite(0, string, strlen(string));
-	char buf[TEST_BUF_SIZE];
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	// Testing Terminal Read
-	clear();
-	string = "SSN: ";
-	terminalWrite(0, string, strlen(string));
-	int read;
-	read = terminalRead(0, buf, TEST_BUF_SIZE);
-	clear();
-	string = "You entered: ";
-	terminalWrite(0, string, strlen(string));
-	terminalWrite(0, buf, read);
-	string = "\nPress ENTER to continue\n";
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	// Directory read
-	clear();
-	testDirRead();
-	string = "\nPress ENTER to continue\n";
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	
-	// File name reads
-	clear();
-	testFileRead((uint8_t *)"frame0.txt");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)".");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"sigtest");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"shell");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"grep");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"syserr");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"rtc");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"fish");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"counter");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"pingpong");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	clear();
-	testFileRead((uint8_t *)"cat");
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	
-	// Index reads
-	int i = 0;
-	for(i = 0; i < FILESYSTEM_DIRECTORIES; i++)
-	{
-		clear();
-		testFileIndex((uint32_t)i);
-		terminalWrite(0, string, strlen(string));
-		terminalRead(0, buf, TEST_BUF_SIZE);
-	}
-	
-	
-	string = "Press ENTER to speed up\n";
-	RTCOpen(NULL);
-	clear();
-	startRTCTest();
-	terminalWrite(0, string, strlen(string));
-	terminalRead(0, buf, TEST_BUF_SIZE);
-	int freq = FREQ_TEST_START;
-	
-	for(freq *= TWICE; freq <= FREQ_TEST_MAX; freq*=TWICE){
-		clear();
-		RTCWrite(0, &freq, sizeof(int));
-		terminalWrite(0, string, strlen(string));
-		terminalRead(0, buf, TEST_BUF_SIZE);
-	}
 
-	stopRTCTest();
-	clear();
-	string = "Tests complete";
-	terminalWrite(0, string, strlen(string));
+	// Initialize behaviors for USER programs
+	initialize_fops();
+	initialize_PCB_pointers();
+
+	// Open the terminal for all stdin/stdout
+	terminalOpen((uint8_t *) "");
+
+	/* Execute the first program (`shell') ... */
+	sys_execute((uint8_t *)"shell");
+
+
+	/* Spin (nicely, so we don't chew up cycles) */
+	asm volatile(".1: hlt; jmp .1;");
+}
+
+
+	
+	
+	// // TESTING Mp3 Checkpoint 2
+	// terminalOpen(NULL);
+	// int8_t * string = "Press ENTER to begin tests\n";
+	// terminalWrite(0, string, strlen(string));
+	// char buf[TEST_BUF_SIZE];
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// // Testing Terminal Read
+	// clear();
+	// string = "SSN: ";
+	// terminalWrite(0, string, strlen(string));
+	// int read;
+	// read = terminalRead(0, buf, TEST_BUF_SIZE);
+	// clear();
+	// string = "You entered: ";
+	// terminalWrite(0, string, strlen(string));
+	// terminalWrite(0, buf, read);
+	// string = "\nPress ENTER to continue\n";
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// // Directory read
+	// clear();
+	// testDirRead();
+	// string = "\nPress ENTER to continue\n";
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	
+	// // File name reads
+	// clear();
+	// testFileRead((uint8_t *)"frame0.txt");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)".");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"sigtest");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"shell");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"grep");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"syserr");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"rtc");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"fish");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"counter");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"pingpong");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// clear();
+	// testFileRead((uint8_t *)"cat");
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	
+	// // Index reads
+	// int i = 0;
+	// for(i = 0; i < FILESYSTEM_DIRECTORIES; i++)
+	// {
+	// 	clear();
+	// 	testFileIndex((uint32_t)i);
+	// 	terminalWrite(0, string, strlen(string));
+	// 	terminalRead(0, buf, TEST_BUF_SIZE);
+	// }
+	
+	
+	// string = "Press ENTER to speed up\n";
+	// RTCOpen(NULL);
+	// clear();
+	// startRTCTest();
+	// terminalWrite(0, string, strlen(string));
+	// terminalRead(0, buf, TEST_BUF_SIZE);
+	// int freq = FREQ_TEST_START;
+	
+	// for(freq *= TWICE; freq <= FREQ_TEST_MAX; freq*=TWICE){
+	// 	clear();
+	// 	RTCWrite(0, &freq, sizeof(int));
+	// 	terminalWrite(0, string, strlen(string));
+	// 	terminalRead(0, buf, TEST_BUF_SIZE);
+	// }
+
+	// stopRTCTest();
+	// clear();
+	// string = "Tests complete";
+	// terminalWrite(0, string, strlen(string));
 	
 	
 	// RTC TESTING STUFF ------------------
@@ -342,10 +359,4 @@ entry (unsigned long magic, unsigned long addr)
 	//Page Fault
 	//int* i = 0;
 	//printf("%d \n", *i);
-
-	/* Execute the first program (`shell') ... */
-
-	/* Spin (nicely, so we don't chew up cycles) */
-	asm volatile(".1: hlt; jmp .1;");
-}
 

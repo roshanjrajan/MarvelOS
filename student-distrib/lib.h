@@ -5,6 +5,8 @@
 #ifndef _LIB_H
 #define _LIB_H
 
+#define ERROR_VAL -1
+
 #include "types.h"
 
 int32_t printf(int8_t *format, ...);

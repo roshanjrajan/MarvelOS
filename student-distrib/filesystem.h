@@ -1,4 +1,3 @@
-
 #ifndef FILESYSTEM_H
 #define FILESYSTEM_H
  
@@ -35,7 +34,6 @@ typedef struct __attribute__((packed)) dentry
 	uint32_t fileType;
 	uint32_t inodeNum;
 	uint32_t reserved24[NUM_RESERVED_DENTRY];
-	
 } dentry_t;
 
 typedef struct __attribute__((packed)) boot_block
@@ -50,19 +48,23 @@ typedef struct __attribute__((packed)) boot_block
 // Structure that holds all the file system info
 boot_block_t* fileSysBootBlock;
 
+// Starting address of File System Image
+uint32_t bootMemAddr;
+
 // Functions used to define the file system and file system functionality
 extern void fileSysInit(module_t* mod);
-extern int32_t fileOpen();
-extern int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes);
+extern int32_t fileOpen(const uint8_t* filename);
+
 extern int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes);
-extern int32_t fileWrite();
-extern int32_t fileClose();
+
+extern int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes);
+extern int32_t fileClose(int32_t fd);
 
 // Functions to do the directory stuff
-extern int32_t directoryOpen();
+extern int32_t directoryOpen(const uint8_t* filename);
 extern int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes);
-extern int32_t directoryWrite();
-extern int32_t directoryClose();
+extern int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes);
+extern int32_t directoryClose(int32_t fd);
 
 //functions used to read from the directory entries
 extern int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry);
@@ -73,5 +75,9 @@ extern int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_
 extern void testDirRead();
 extern void testFileRead(uint8_t * fname);
 extern void testFileIndex(uint32_t index);
+
+extern int cur_pid;
+
+#include "systemcall.h"
 
 #endif

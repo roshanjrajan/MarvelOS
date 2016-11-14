@@ -32,10 +32,10 @@ void init_paging() {
 	page_directory[PAGE_TABLE_INDEX].page_size	= 0;
 	page_directory[PAGE_TABLE_INDEX].reserved_2 = 0;
 	page_directory[PAGE_TABLE_INDEX].accessed = 0;
-	page_directory[PAGE_TABLE_INDEX].cache_disable = 0;//
-	page_directory[PAGE_TABLE_INDEX].write_through = 0;//
-	page_directory[PAGE_TABLE_INDEX].user_supervisor = 0;//
-	page_directory[PAGE_TABLE_INDEX].read_write_permissions = 1; //
+	page_directory[PAGE_TABLE_INDEX].cache_disable = 0;
+	page_directory[PAGE_TABLE_INDEX].write_through = 0;
+	page_directory[PAGE_TABLE_INDEX].user_supervisor = 0;
+	page_directory[PAGE_TABLE_INDEX].read_write_permissions = 1; 
 	page_directory[PAGE_TABLE_INDEX].present = 1;
 
 	/* Now initialize the page directory for the kernel memory entry */
@@ -45,10 +45,10 @@ void init_paging() {
 	page_directory[KERNEL_MEM_INDEX].page_size	= 1;
 	page_directory[KERNEL_MEM_INDEX].reserved_2 = 0;
 	page_directory[KERNEL_MEM_INDEX].accessed = 0;
-	page_directory[KERNEL_MEM_INDEX].cache_disable = 0;//
-	page_directory[KERNEL_MEM_INDEX].write_through = 0;//
-	page_directory[KERNEL_MEM_INDEX].user_supervisor = 0;//
-	page_directory[KERNEL_MEM_INDEX].read_write_permissions = 1; //
+	page_directory[KERNEL_MEM_INDEX].cache_disable = 0;
+	page_directory[KERNEL_MEM_INDEX].write_through = 0;
+	page_directory[KERNEL_MEM_INDEX].user_supervisor = 0;
+	page_directory[KERNEL_MEM_INDEX].read_write_permissions = 1; 
 	page_directory[KERNEL_MEM_INDEX].present = 1;
 
 	/* Initialize all the page table entries to unused  */
@@ -63,10 +63,10 @@ void init_paging() {
 	page_table[VIDEO_MEM_INDEX].reserved_1 = 0;
 	page_table[VIDEO_MEM_INDEX].dirty	= 0;
 	page_table[VIDEO_MEM_INDEX].accessed = 0;
-	page_table[VIDEO_MEM_INDEX].cache_disable = 0;//
-	page_table[VIDEO_MEM_INDEX].write_through = 0;//
-	page_table[VIDEO_MEM_INDEX].user_supervisor = 0; //
-	page_table[VIDEO_MEM_INDEX].read_write_permissions = 1; //
+	page_table[VIDEO_MEM_INDEX].cache_disable = 0;
+	page_table[VIDEO_MEM_INDEX].write_through = 0;
+	page_table[VIDEO_MEM_INDEX].user_supervisor = 0; 
+	page_table[VIDEO_MEM_INDEX].read_write_permissions = 1;
 	page_table[VIDEO_MEM_INDEX].present = 1;
 
 	// Enable Paging

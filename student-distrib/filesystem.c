@@ -1,9 +1,5 @@
 #include "filesystem.h"
 
-// Starting address of File System Image
-uint32_t bootMemAddr;
-
-
 /*
 * uint32_t strlen(const int8_t* s);
 *   Inputs: const int8_t* s = string to take length of
@@ -61,7 +57,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 {
 	int i;
 	// Check if input dentry is null
-	if (dentry == NULL) return -1;
+	if (dentry == NULL) return ERROR_VAL;
 	
 	// For each file in the directory
 	for(i = 0; i < fileSysBootBlock->numDirectories; i++)
@@ -75,7 +71,7 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 		}
 	}
 	
-	return -1;
+	return ERROR_VAL;
 }
 
 
@@ -91,11 +87,11 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
 {
 	// Check if input dentry is null
-	if (dentry == NULL) return -1;
+	if (dentry == NULL) return ERROR_VAL;
 	
 	// Check if input index is valid
 	if(index >= fileSysBootBlock->numDirectories || index < 0) // Invalid Index
-		return -1;
+		return ERROR_VAL;
 	else
 	{
 		//Fill in dentry of the index
@@ -120,16 +116,20 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
 int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t length)
 {
 	// Check if input buf is null or invalid inode input
-	if (buf == NULL) return -1;
+	if (buf == NULL) return ERROR_VAL;
 	if(inode >= fileSysBootBlock->numInodes || inode < 0)
-			return -1;
+			return ERROR_VAL;
 		
+	if(length < 0) {
+		return ERROR_VAL;
+	}
+
 	// Current fileInode
 	inode_t fileInode = *((inode_t *)(bootMemAddr + FILESYSTEM_BLOCKSIZE*(inode + 1)));
 	
 	// Check if offset is within file bounds
 	if(offset < 0 || offset >= fileInode.length)
-		return -1;
+		return ERROR_VAL;
 	
 
 	// Variables used to calculate various checks
@@ -150,7 +150,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 		copy_start = bootMemAddr + FILESYSTEM_BLOCKSIZE * (fileSysBootBlock->numInodes + 1 + 
 			fileInode.dataBlocks[dataBlockIndex]) + dataBlockOffset;
 			
-		// amount to be copiued
+		// amount to be copied
 		copy_len = MIN((FILESYSTEM_BLOCKSIZE - dataBlockOffset), copyLength - bytesCopied);
 		
 		// Copy into buffer
@@ -193,36 +193,13 @@ void fileSysInit(module_t *mod)
  * fileOpen
  *
  * DESCRIPTION: Open nothing 
- * INPUT: none.
+ * INPUT: dummy value.
  * OUTPUT: returns 0
  * SIDE_EFFECTS: none. 
  */
-int32_t fileOpen(){
+int32_t fileOpen(const uint8_t* filename){
 	return 0;
 }
-
-/* 
- * fileRead
- *
- * DESCRIPTION: Reads a file using the file name and fills in the buffer
- * INPUT: const uint8_t* fname = file name of file to be read
- * 		  void *  buf = buffer to be filled
- * 		  int32_t nbytes = length of buffer
- * OUTPUT: returns -1 if bad file name, else returns bytes copied or errors from read_data
- * SIDE_EFFECTS: Fills in buffer to be printed
- */
-int32_t fileRead(const uint8_t* fname, void * buf, int32_t nbytes){
-	
-	dentry_t dentry;
-	
-	// Check that file exists and fill dentry
-	if(read_dentry_by_name (fname, &dentry) != 0)
-		return -1; // BAD FILE NAME
-	
-	// return data read
-	return read_data (dentry.inodeNum, 0, buf, nbytes);
-}
-
 
 /* 
  * fileReadIdx
@@ -240,7 +217,7 @@ int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes){
 	
 	// Check that file exists and fill dentry
 	if(read_dentry_by_index (index, &dentry) != 0)
-		return -1; // BAD FILE NAME
+		return ERROR_VAL; // BAD FILE NAME
 	
 	// return data read
 	return read_data (dentry.inodeNum, 0, buf, nbytes);
@@ -254,8 +231,8 @@ int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t fileWrite(){
-	return -1;
+int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes){
+	return ERROR_VAL;
 }
 
 
@@ -267,7 +244,7 @@ int32_t fileWrite(){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t fileClose(){
+int32_t fileClose(int32_t fd){
 	return 0;
 }
 
@@ -282,11 +259,11 @@ int32_t fileClose(){
  * directoryOpen
  *
  * DESCRIPTION: Open nothing 
- * INPUT: none.
+ * INPUT: dummy argument.
  * OUTPUT: returns 0
  * SIDE_EFFECTS: none. 
  */
-int32_t directoryOpen(){
+int32_t directoryOpen(const uint8_t* filename){
 	return 0;
 }
 
@@ -310,7 +287,7 @@ int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
 		// Fill in dentry of index
 		
 		if(read_dentry_by_index (index, &dentry) != 0)
-			return -1; // Done with all of them
+			return ERROR_VAL; // Done with all of them
 		
 		
 		// copy filename to buffer
@@ -335,8 +312,8 @@ int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t directoryWrite(){
-	return -1;
+int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes){
+	return ERROR_VAL;
 }
 
 
@@ -348,9 +325,23 @@ int32_t directoryWrite(){
  * OUTPUT: returns -1
  * SIDE_EFFECTS: none. 
  */
-int32_t directoryClose(){
+int32_t directoryClose(int32_t fd){
 	return 0;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 /* 
@@ -360,7 +351,7 @@ int32_t directoryClose(){
  * INPUT: none.
  * OUTPUT: Print directory files to the terminal
  * SIDE_EFFECTS: none. 
- */
+
 void testDirRead()
 {
 	//Read all files in directory
@@ -369,6 +360,10 @@ void testDirRead()
 	//printf("dirRead done");
 }
 
+ */
+
+
+
 /* 
  * testFileRead
  *
@@ -376,7 +371,7 @@ void testDirRead()
  * INPUT: none.
  * OUTPUT: Print directory files contents to the terminal
  * SIDE_EFFECTS: none. 
- */
+
 void testFileRead(uint8_t * fname)
 {
 	// fill in buffer about file
@@ -391,7 +386,7 @@ void testFileRead(uint8_t * fname)
 	terminalWrite(0, (void *)fname, strlenFile((int8_t *)fname, MAX_FILENAME_LENGTH));
 	terminalWrite(0, (void *)"\n", 1);
 }
-
+ */
 
 /* 
  * testDirRead
@@ -400,7 +395,7 @@ void testFileRead(uint8_t * fname)
  * INPUT: none.
  * OUTPUT: Print directory files to the terminal
  * SIDE_EFFECTS: none. 
- */
+
 void testFileIndex(uint32_t index)
 {
 	// fill in buffer about file
@@ -414,7 +409,7 @@ void testFileIndex(uint32_t index)
 	terminalWrite(0, (void *)"\n", 1);
 }
 
-
+ */
 
 
 

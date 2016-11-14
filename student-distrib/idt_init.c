@@ -1,7 +1,5 @@
 #include "idt_init.h"
 
-
-
 /*
  * eh0
  * DESCRIPTION: Exception handler 0 as specified in the IDT
@@ -12,7 +10,8 @@
  */
 void eh0(){
 	printf("EXCEPTION: DIVIDE ERROR");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -25,7 +24,8 @@ void eh0(){
  */
 void eh2(){
 	printf("EXCEPTION: NMI INTERRUPT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -38,7 +38,8 @@ void eh2(){
  */
 void eh3(){
 	printf("EXCEPTION: BREAKPOINT");
-	while(1);//
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -51,7 +52,8 @@ void eh3(){
  */
 void eh4(){
 	printf("EXCEPTION: OVERFLOW");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -64,7 +66,8 @@ void eh4(){
  */
 void eh5(){
 	printf("EXCEPTION: BOUND RANGE EXCEEDED");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -77,7 +80,8 @@ void eh5(){
  */
 void eh6(){
 	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -90,7 +94,8 @@ void eh6(){
  */
 void eh7(){
 	printf("EXCEPTION: DEVICE NOT AVAILABLE");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -102,7 +107,8 @@ void eh7(){
  */
 void eh8(){
 	printf("EXCEPTION: DOUBLE FAULT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -115,7 +121,8 @@ void eh8(){
  */
 void eh9(){
 	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -128,7 +135,8 @@ void eh9(){
  */
 void eh10(){
 	printf("EXCEPTION: INVALID TSS");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -141,7 +149,8 @@ void eh10(){
  */
 void eh11(){
 	printf("EXCEPTION: SEGMENT NOT PRESENT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -154,7 +163,8 @@ void eh11(){
  */
 void eh12(){
 	printf("EXCEPTION: STACK SEGMENT FAULT");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -167,7 +177,8 @@ void eh12(){
  */
 void eh13(){
 	printf("EXCEPTION: GENERAL PROTECTION");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -180,7 +191,19 @@ void eh13(){
  */
 void eh14(){
 	printf("EXCEPTION: PAGE FAULT");
+
+	uint32_t* cr2_val;
+	asm("movl %%cr2, %0;"
+		:"=r"(cr2_val)
+		:
+		:"memory");
+	printf("\nCR2_val:           %x", cr2_val);
 	while(1);
+
+
+
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -193,7 +216,8 @@ void eh14(){
  */
 void eh16(){
 	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -206,8 +230,10 @@ void eh16(){
  */
 void eh17(){
 	printf("EXCEPTION: ALIGNMENT CHECK");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
+
 /*
  * eh18
  * DESCRIPTION: Exception handler 18 as specified in the IDT
@@ -218,7 +244,8 @@ void eh17(){
  */
 void eh18(){
 	printf("EXCEPTION: MACHINE CHECK");	
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -230,7 +257,8 @@ void eh18(){
  */
 void eh19(){
 	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION");
-	while(1);
+	PCB_ptrs[cur_pid]->exception_flag = 1;
+	sys_halt(255);
 }
 
 /*
@@ -290,83 +318,6 @@ void init_exceptions(){
 	SET_IDT_ENTRY(idt[19], eh19);
 }
 
-/*
- * KBhandler
- * Handler for keyboard input.
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: Prints typed character to the screen. 
- */
-/*void KBhandler(){
-	// As interrupt, save all general purpose registers
-	asm volatile ("pusha");
-	
-	// select and push ascii code from table
-	uint32_t scode;
-	scode = inb(KB_DATA_PORT);
-	if(ascii_scan[scode] != 0)
-		putc(ascii_scan[scode]);
-	
-	// end of interrupt signal
-	send_eoi(KB_IRQ);
-
-	// restore general purpose register, return
-	asm volatile ("popa");
-	asm volatile ("leave");
-	asm volatile ("iret");
-}*/
-
-/* 
- * RTC_init
- *
- * DESCRIPTION: initialize the RTC device.
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: RTC device will start producing periodic interrupts. 
- */
-/*void RTC_init(){
-	// Enable periodic interrupt (bit 6 in reg B)
-	outb(BIT8+RTC_B, RTC_PORT);
-	char prev = inb(RTC_DATA);
-	outb(BIT8+RTC_B, RTC_PORT);
-	outb(prev | BIT6_MASK, RTC_DATA);
-	
-	// Changing interrupt rate (lower four bits in reg A)
-	outb(BIT8+RTC_A, RTC_PORT);
-	prev = inb(RTC_DATA);
-	outb (BIT8+RTC_A, RTC_PORT);
-	outb((prev & HI4) | LOW4, RTC_DATA);
-	
-	outb(inb(RTC_PORT)&(~BIT8), RTC_PORT);	// Enable NMI
-	
-	// Read data from reg C
-	outb(RTC_C, RTC_PORT);
-	inb(RTC_DATA);
-}*/
-
-/* 
- * RTChandler
- *
- * DESCRIPTION: Interrupt handler for the RTC device.
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: none.
- */
-/*void RTChandler(){
-	// As interrupt, save all general purpose registers
-	asm volatile ("pusha");
-	
-	outb(RTC_C, RTC_PORT);
-	inb(RTC_DATA);
-	test_interrupts();
-	send_eoi(RTC_IRQ);
-	
-	// restore general purpose register, return	
-	asm volatile ("popa");
-	asm volatile ("leave");
-	asm volatile ("iret");
-}*/
-
 /* 
  * init_interrupts
  *
@@ -399,20 +350,6 @@ void init_interrupts(){
 	idt[RTC_IRQ+NUM_EXCEPTIONS].present = 1;
 }
 
-/* 
- * syscall
- *
- * DESCRIPTION: System call handler - not yet implemented
- * INPUT: none.
- * OUTPUT: none.
- * SIDE_EFFECTS: none.
- */
-void syscall(){
-	/* TODO */
-	printf("System Call Handler not yet implemented!");
-	while(1);
-}
-
 /*
  * init_syscall
  * DESCRIPTION: System call initialization in IDT
@@ -424,7 +361,7 @@ void init_syscall(){
 	// enter data for single system call entry in IDT
 	idt[SCALL_LOC].seg_selector = KERNEL_CS;
 	idt[SCALL_LOC].reserved4 = 0;
-	idt[SCALL_LOC].reserved3 = 0;
+	idt[SCALL_LOC].reserved3 = 1;
 	idt[SCALL_LOC].reserved2 = 1;
 	idt[SCALL_LOC].reserved1 = 1;
 	idt[SCALL_LOC].size = 1;
