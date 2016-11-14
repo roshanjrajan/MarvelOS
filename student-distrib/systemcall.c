@@ -197,7 +197,7 @@ int32_t sys_halt (uint8_t status) {
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
 	uint8_t * args = NULL;
-	uint8_t fname[32];
+	uint8_t fname[FNAME_SIZE];
 	int i;
 
 	//Make sure arg is valid
@@ -216,13 +216,13 @@ int32_t sys_execute (const uint8_t* command){
 	}
 
 	// Initializing fname to all '\0'
-	for(i=0; i<32; i++){
+	for(i=0; i<FNAME_SIZE; i++){
 		fname[i] = '\0';
 	}
 	
 	// Fill in filename
 	i=0;
-	while(command[i] != '\0' && command[i] != ' ' && i<32){
+	while(command[i] != '\0' && command[i] != ' ' && i<FNAME_SIZE){
 		fname[i] = command[i];
 		i++;
 	}
@@ -249,8 +249,8 @@ int32_t sys_execute (const uint8_t* command){
 	if(read_data(new_dentry.inodeNum, 0, testBuffer, EXECUTABLE_CHECK_BUFFER_SIZE) == -1) {
 		return ERROR_VAL;
 	}
-	if(testBuffer[0] != EXECUTABLE_FIRST_BYTE || testBuffer[1] != EXECUTABLE_SECOND_BYTE
-		|| testBuffer[2] != EXECUTABLE_THIRD_BYTE || testBuffer[3] != EXECUTABLE_FOURTH_BYTE) {
+	if(testBuffer[FIRST_BYTE] != EXECUTABLE_FIRST_BYTE || testBuffer[SECOND_BYTE] != EXECUTABLE_SECOND_BYTE
+		|| testBuffer[THIRD_BYTE] != EXECUTABLE_THIRD_BYTE || testBuffer[FOURTH_BYTE] != EXECUTABLE_FOURTH_BYTE) {
 		return ERROR_VAL;
 	}
 
@@ -293,7 +293,7 @@ int32_t sys_execute (const uint8_t* command){
 	}
 
 	// Perform context switch
- 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - pid * EIGHT_KB) - 4;//update the process's kernel-mode stack pointer
+ 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - pid * EIGHT_KB) - LONG_BYTES;//update the process's kernel-mode stack pointer
 
  	// Store current esp and ebp
 	uint32_t ptr;
@@ -388,7 +388,7 @@ int32_t sys_open (const uint8_t* filename){
 		index = 1;
 	}
 	else {
-		index = 2;
+		index = NOT_IN_OUT;
 		int filetype;
 		dentry_t new_dentry;
 
@@ -398,7 +398,7 @@ int32_t sys_open (const uint8_t* filename){
 		}
 
 		//FDT is full
-		if(index == 8) {
+		if(index == MAX_NUM_FDT_ENTRIES) {
 			return ERROR_VAL;
 		}
 
@@ -457,7 +457,7 @@ int32_t sys_open (const uint8_t* filename){
  */
 int32_t sys_close (int32_t fd) {
 	file_descriptor_entry_t * fdt = PCB_ptrs[cur_pid]->process_fdt;
-	if(fd < 2 || fd > MAX_NUM_FDT_ENTRIES) {
+	if(fd < NOT_IN_OUT || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
 

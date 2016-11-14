@@ -7,6 +7,7 @@
 #define FIRST_ARG_OFFSET 4
 #define USER_ESP 0x83FFFFC
 #define IF_MASK 0x200
+#define THREE_LONGS 12
 
 
 .text
@@ -42,7 +43,7 @@ syscall:
 	call *jmp_table(, %eax, 4)	#make the dispatch call
 
 	#teardown stack
-	addl $12, %esp
+	addl $THREE_LONGS, %esp
 	popl %edi
 	popl %esi
 	popl %edx

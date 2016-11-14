@@ -23,6 +23,13 @@
 #define PROGRAM_INIT_VIRTUAL_ADDR 0x08048000
 #define PROCESS_PAGING_INDEX 32 // (128 MB / 4 MB) = 32 (indexing starts at 0)
 #define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_MB
+#define FNAME_SIZE 32
+#define FIRST_BYTE 0
+#define SECOND_BYTE 1
+#define THIRD_BYTE 2
+#define FOURTH_BYTE 3
+#define NOT_IN_OUT 2
+#define LONG_BYTES 4
 
 // FLAGS FOR FDT
 #define UNUSED_FLAG 0
