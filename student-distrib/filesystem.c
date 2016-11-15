@@ -127,8 +127,12 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 	// Current fileInode
 	inode_t fileInode = *((inode_t *)(bootMemAddr + FILESYSTEM_BLOCKSIZE*(inode + 1)));
 	
+	//Check if we are at the end of the file
+	if(offset == fileInode.length)
+		return 0;
+	
 	// Check if offset is within file bounds
-	if(offset < 0 || offset >= fileInode.length)
+	if(offset < 0 || offset > fileInode.length)
 		return ERROR_VAL;
 	
 

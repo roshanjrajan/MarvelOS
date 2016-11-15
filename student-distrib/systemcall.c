@@ -15,7 +15,11 @@ int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
-	return read_data(fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
+	int bytesRead = read_data(fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
+	if(bytesRead == ERROR_VAL)
+		return ERROR_VAL;
+	fdt[fd].file_position += bytesRead;
+	return bytesRead;
 }
 
 
@@ -196,7 +200,7 @@ int32_t sys_halt (uint8_t status) {
  */
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
-	uint8_t * args = NULL;
+	uint8_t args[128];
 	uint8_t fname[FNAME_SIZE];
 	int i;
 
@@ -228,14 +232,15 @@ int32_t sys_execute (const uint8_t* command){
 	}
 	
 	// Ignore spaces between name and args
-	i=0;
+	//i=0;
 	while(command[i] == ' '){
 		i++;
 	}
 	
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
-		args = (uint8_t *) &command[i];
+		strncpy(args, &command[i], 127);
+		args[127]='\0';
 	}
 	
 	//Make sure our file is valid
@@ -278,13 +283,14 @@ int32_t sys_execute (const uint8_t* command){
 	clearTLB();
 
 	//Start populating PCB data
-	PCB_ptrs[pid] = (PCB_t *) EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
+	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
-	PCB_ptrs[pid] -> arg_ptr = args;
+	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, 128);
+	//PCB_ptrs[pid] -> arg_ptr = args;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
 	//Perform loading procedure
@@ -472,11 +478,17 @@ int32_t sys_close (int32_t fd) {
  * DESCRIPTION: Close file
  * INPUT:  uint8_t* buf - buffer to copy args into
  *		   int32_t nbytes - number of bytes to copy
- * OUTPUT: 0 (success)
+ * OUTPUT: 0 (success), ERROR_VAL for error(buffer not big enough)
  * SIDE_EFFECTS: Get the arguments and copy 
  */
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
-	strncpy((int8_t *) buf, (const int8_t *) PCB_ptrs[cur_pid] -> arg_ptr, nbytes);
+	strncpy((int8_t *) buf, (const int8_t *) (PCB_ptrs[cur_pid] -> arg_ptr), 128);
+	if(buf[127] != '\0')
+		return ERROR_VAL;
+	//terminalWrite(0, buf, 128);
+	//buf[0]='l';
+	//buf[1]='s';
+	//buf[2]='\0';
 	return 0;
 }
 
