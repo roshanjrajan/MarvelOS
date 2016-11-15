@@ -481,6 +481,21 @@ int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
 }
 
 int32_t sys_vidmap (uint8_t** screen_start){
+	
+	//Make sure our argument is not null
+	if((screen_start == NULL) || (*screen_start == NULL)) {
+		return ERROR_VAL;
+	}
+
+	//Make sure the virtual addr given by the caller isn't in the 0-4MB range
+	uint32_t new_address;
+	strncpy(&new_address, *screen_start, 4);
+	if(new_address < FOUR_MB) {
+		return ERROR_VAL;
+	}
+
+	//TODO: do the paging stuff for the vidmap. It's not too bad....
+
 
 	return 0;
 }
