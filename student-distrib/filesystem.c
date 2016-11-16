@@ -140,7 +140,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 	uint32_t dataBlockIndex = offset/FILESYSTEM_BLOCKSIZE;
 	uint32_t dataBlockOffset = offset%FILESYSTEM_BLOCKSIZE;
 	uint32_t bytesCopied = 0;
-	uint32_t copyLength = MIN(length, fileInode.length);
+	uint32_t copyLength = MIN(length, fileInode.length-offset);
 	
 	
 	// Start of current copy
