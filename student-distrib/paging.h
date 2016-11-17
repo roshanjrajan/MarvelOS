@@ -9,13 +9,17 @@
 #define NUM_PAGES_IN_TABLE 1024
 #define MIXED_SIZE_PAGE_MASK 0x00000010
 #define SIZE_4KB_PAGE 4096
-#define PAGE_TABLE_INDEX 0
+#define KERNEL_PAGE_TABLE_INDEX 0
 #define VIDEO_MEM_INDEX 184
 #define VIDEO_4KB_ALIGNED_ADDRESS 0xB8000
 #define KERNEL_MEM_INDEX 1
 #define KERNEL_4KB_ALIGNED_ADDRESS 0x00400000
+#define USER_PAGE_TABLE_INDEX 128
+#define USER_VIDEO_MEM_INDEX 0
 #define SIZE_PHYSICAL_ADDRESS 20
 #define PDE_PTE_ADDRESS_SHIFT 12
+#define USER_PAGE_TABLE_INDEX 128
+#define USER_VIDEO_MEM_INDEX 0
 
 /* A page directory entry struct */
 typedef union pde_desc_t {
@@ -56,7 +60,8 @@ typedef union pte_desc_t {
 
 // Paging Directory and Table
 pde_desc_t page_directory[NUM_PAGE_TABLES] __attribute__((aligned(SIZE_4KB_PAGE)));
-pte_desc_t page_table[NUM_PAGES_IN_TABLE] __attribute__((aligned(SIZE_4KB_PAGE)));
+pte_desc_t kernel_page_table[NUM_PAGES_IN_TABLE] __attribute__((aligned(SIZE_4KB_PAGE)));
+pte_desc_t user_page_table[NUM_PAGES_IN_TABLE] __attribute__((aligned(SIZE_4KB_PAGE)));
 
 // Paging Functions
 extern void loadPageDirectory(uint32_t * address);

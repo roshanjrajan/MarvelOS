@@ -35,6 +35,9 @@ syscall:
 	#check for valid syscall number
 	cmpl $MAX_SYSCALL_NUM, %eax
 	ja invalid_syscall_num
+	
+	cmpl $0x0, %eax
+	je invalid_syscall_num
 
 	#push args to stack
 	pushl %edx

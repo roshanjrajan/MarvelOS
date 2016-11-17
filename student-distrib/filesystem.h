@@ -54,14 +54,11 @@ uint32_t bootMemAddr;
 // Functions used to define the file system and file system functionality
 extern void fileSysInit(module_t* mod);
 extern int32_t fileOpen(const uint8_t* filename);
-
 extern int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes);
-
 extern int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes);
 extern int32_t fileClose(int32_t fd);
 
 // Functions to do the directory stuff
-extern int32_t directoryOpen(const uint8_t* filename);
 extern int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes);
 extern int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes);
 extern int32_t directoryClose(int32_t fd);
