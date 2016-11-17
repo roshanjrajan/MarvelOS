@@ -26,11 +26,12 @@ int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 /* 
  * directoryRead
  *
- * DESCRIPTION: Print all the files in the directory to terminal
- * INPUT: int32_t fd, void * buf, int32_t nbytes
- * 		  uint8_t * buf = buffer to be filled
- * OUTPUT: returns -1 if bad file index else number of bytes for each file
- * SIDE_EFFECTS: Prints out the directory entry associated with directory files
+ * DESCRIPTION: Reads a single file and outputs to buffer
+ * INPUT: int32_t fd - index in the fdt
+ *  	  void * buf - buffer to be filled that stories file name
+ * 		  int32_t nbytes - size of buffer
+ * OUTPUT: returns -1 if bad file index else size of file name
+ * SIDE_EFFECTS: Fills up the buffer with a file name
  */
 int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
 	
@@ -222,6 +223,70 @@ int32_t sys_halt (uint8_t status) {
 }
 
 /*  
+ * init_process_paging
+ *
+ * DESCRIPTION: Initiliazes paging for new process
+ * INPUT:  int pid - process id
+ * OUTPUT: NONE
+ * SIDE_EFFECTS: Sets up page directory for program, user space (vidmap)
+ */
+static void init_process_paging(int pid) {
+	int i;
+
+	//Initialize paging for the process image (corresponds to virtual address 128 MB)
+	page_directory[PROCESS_PAGING_INDEX].page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
+	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
+	page_directory[PROCESS_PAGING_INDEX].reserved_1 = 0;
+	page_directory[PROCESS_PAGING_INDEX].page_size = 1;
+	page_directory[PROCESS_PAGING_INDEX].reserved_2 = 0;
+	page_directory[PROCESS_PAGING_INDEX].accessed = 0;
+	page_directory[PROCESS_PAGING_INDEX].cache_disable = 0;
+	page_directory[PROCESS_PAGING_INDEX].write_through = 0;
+	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 1;
+	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1;
+	page_directory[PROCESS_PAGING_INDEX].present = 1;
+
+
+	/* Determine a new virtual address for user to access vidmap data
+		We arbitrarily choose the virtual address of 512 MB for vidmap.
+		We check to make sure the page is not used, and then set up the PTE */
+
+	/* Check to make sure that the page isn't already used */
+	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
+	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
+	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
+	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
+	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
+
+	/* Initialize all the user page table entries to unused  */
+	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
+		user_page_table[i].present = 0;
+	}
+
+	/* initialize the page in the user page table for a video memory entry */
+	user_page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+	user_page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
+	user_page_table[USER_VIDEO_MEM_INDEX].global = 1;
+	user_page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
+	user_page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
+	user_page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
+	user_page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
+	user_page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
+	user_page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
+	user_page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
+	user_page_table[USER_VIDEO_MEM_INDEX].present = 1;
+
+	//Flush the TLB for each new program
+	clearTLB();
+}
+
+/*  
  * sys_execute
  *
  * DESCRIPTION: Initialize new process
@@ -296,22 +361,8 @@ int32_t sys_execute (const uint8_t* command){
 		return ERROR_VAL;
 	}
 
-
-	//Initialize paging for the process image (corresponds to virtual address 128 MB)
-	page_directory[PROCESS_PAGING_INDEX].page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
-	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
-	page_directory[PROCESS_PAGING_INDEX].reserved_1 = 0;
-	page_directory[PROCESS_PAGING_INDEX].page_size = 1;
-	page_directory[PROCESS_PAGING_INDEX].reserved_2 = 0;
-	page_directory[PROCESS_PAGING_INDEX].accessed = 0;
-	page_directory[PROCESS_PAGING_INDEX].cache_disable = 0;
-	page_directory[PROCESS_PAGING_INDEX].write_through = 0;
-	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 1;
-	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1;
-	page_directory[PROCESS_PAGING_INDEX].present = 1;
-
-	//Flush the TLB for each new program
-	clearTLB();
+	// Initilaze all pages for current process 
+	init_process_paging(pid);
 
 	//Start populating PCB data
 	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
@@ -510,7 +561,7 @@ int32_t sys_close (int32_t fd) {
 /*  
  * sys_getargs
  *
- * DESCRIPTION: Close file
+ * DESCRIPTION: Get the arguments 
  * INPUT:  uint8_t* buf - buffer to copy args into
  *		   int32_t nbytes - number of bytes to copy
  * OUTPUT: 0 (success), ERROR_VAL for error(buffer not big enough)
@@ -523,6 +574,15 @@ int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
 	return 0;
 }
 
+
+/*  
+ * sys_vidmap
+ *
+ * DESCRIPTION: Enables user access to video memory
+ * INPUT:  uint8_t** screen_start - pointer to user virtual video memory
+ * OUTPUT: 0 (success), ERROR_VAL for error(invalid argument)
+ * SIDE_EFFECTS: Changes value of * screen_start
+ */
 int32_t sys_vidmap (uint8_t** screen_start){
 	//Make sure our argument is not null
 	if(screen_start == NULL) {
@@ -530,108 +590,38 @@ int32_t sys_vidmap (uint8_t** screen_start){
 	}
 
 	//Make sure that we aren't writing to 0-8MB range (kernel space)
-	if( (uint32_t) (*screen_start) < EIGHT_MB) {
+	if( (uint32_t) (screen_start) < EIGHT_MB) {
 		return ERROR_VAL;
 	}
-
-	/* Determine a new virtual address for user to access vidmap data
-		We arbitrarily choose the virtual address of 512 MB for vidmap.
-		We check to make sure the page is not used, and then set up the PTE */
-	uint32_t new_address, i;
-	new_address = USER_VIDMAP_ADDR;
-
-	/* Check to make sure that the page isn't already used */
-	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
-	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
-	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
-	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
-
-	/* Initialize all the user page table entries to unused  */
-	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
-		user_page_table[i].present = 0;
-	}
-
-	/* initialize the page in the user page table for a video memory entry */
-	page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
-	page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
-	page_table[USER_VIDEO_MEM_INDEX].global = 1;
-	page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
-	page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
-	page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
-	page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
-	page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
-	page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
-	page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
-	page_table[USER_VIDEO_MEM_INDEX].present = 1;
 
 	//Save our new address back into the user space
-	strncpy((int8_t *) *screen_start, (int8_t *) &new_address, 4);
-
-	//Make sure our argument is not null
-	if(screen_start == NULL) {
-		return ERROR_VAL;
-	}
-
-	//Make sure that we aren't writing to 0-8MB range (kernel space)
-	if( (uint32_t) (*screen_start) < EIGHT_MB) {
-		return ERROR_VAL;
-	}
-
-	/* Determine a new virtual address for user to access vidmap data
-		We arbitrarily choose the virtual address of 512 MB for vidmap.
-		We check to make sure the page is not used, and then set up the PTE */
-	uint32_t new_address, i;
-	new_address = USER_VIDMAP_ADDR;
-
-	/* Check to make sure that the page isn't already used */
-	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
-	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
-	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
-	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
-
-	/* Initialize all the user page table entries to unused  */
-	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
-		user_page_table[i].present = 0;
-	}
-
-	/* initialize the page in the user page table for a video memory entry */
-	page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
-	page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
-	page_table[USER_VIDEO_MEM_INDEX].global = 1;
-	page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
-	page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
-	page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
-	page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
-	page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
-	page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
-	page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
-	page_table[USER_VIDEO_MEM_INDEX].present = 1;
-
-	//Save our new address back into the user space
-	strncpy((int8_t *) *screen_start, (int8_t *) &new_address, 4);
+	uint32_t new_address = USER_VIDMAP_ADDR;
+	(*screen_start) = (uint8_t*) new_address;
 
 	return 0;
 }
 
+/*  
+ * sys_sethandler
+ *
+ * DESCRIPTION: Changes default action when signal received
+ * INPUT:  NOT USED
+ * OUTPUT: 0 (success), ERROR_VAL for error(invalid argument)
+ * SIDE_EFFECTS: NOTHING
+ */
 int32_t sys_sethandler (int32_t signum, void* handler_address){
 	
 	return ERROR_VAL;
 }
 
+/*  
+ * sys_sigreturn
+ *
+ * DESCRIPTION: Copies hardware context from user to processor
+ * INPUT:  NONE
+ * OUTPUT: 0 (success), ERROR_VAL for error(invalid argument)
+ * SIDE_EFFECTS: NOTHING
+ */
 int32_t sys_sigreturn (void){
 	
 	return ERROR_VAL;

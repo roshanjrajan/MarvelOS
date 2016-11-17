@@ -1,12 +1,15 @@
 #include "filesystem.h"
 
-/*
-* uint32_t strlen(const int8_t* s);
-*   Inputs: const int8_t* s = string to take length of
-*   Return Value: length of string s
-*	Function: return length of string s
-*/
 
+/* 
+ * strlenFile
+ *
+ * DESCRIPTION: find the len of the string (must be less then input maxStrLen)
+ * INPUT: const int8_t* s = string to take length of
+ * 		  uint32_t maxStrLen = the maximum string length
+ * OUTPUT: length of string s
+ * SIDE_EFFECTS:  return length of string s
+ */
 uint32_t
 strlenFile(const int8_t* s, uint32_t maxStrLen)
 {
@@ -18,15 +21,17 @@ strlenFile(const int8_t* s, uint32_t maxStrLen)
 	return len;
 }
 
-/*
-* int8_t* strcpy(int8_t* dest, const int8_t* src)
-*   Inputs: int8_t* dest = destination string of copy
-*			const int8_t* src = source string of copy
-*			uint32_t maxStrLen max string length
-*   Return Value: pointer to dest
-*	Function: copy the source string into the destination string (max length of maxStrLen)
-*/
 
+/* 
+ * strcpyFile
+ *
+ * DESCRIPTION: Copies from src to dest for string (copy size must be less then input maxStrLen)
+ * INPUT: int8_t* dest = destination string of copy
+ *			const int8_t* src = source string of copy
+ *			uint32_t maxStrLen max string length
+ * OUTPUT:  Number of bytes copied
+ * SIDE_EFFECTS:  return number of bytes copied
+ */
 uint32_t
 strcpyFile(int8_t* dest, const int8_t* src, uint32_t maxStrLen)
 {
@@ -38,15 +43,12 @@ strcpyFile(int8_t* dest, const int8_t* src, uint32_t maxStrLen)
 		i++;
 	}
 	bytesCopied = i;
-	//strncpy(dest, src, i);
 
 	return bytesCopied;
 }
 
 
 
-
-// READING DATA/DIRECTORY ENTRIES HELPER FUNCTIONS
 /* 
  * read_dentry_by_name
  *
@@ -176,7 +178,6 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 
 
 
-
 // FILE SYSTEM STUFF
 
 /* 
@@ -199,7 +200,7 @@ void fileSysInit(module_t *mod)
 /* 
  * fileOpen
  *
- * DESCRIPTION: Open nothing 
+ * DESCRIPTION: Open the file
  * INPUT: dummy value.
  * OUTPUT: returns 0
  * SIDE_EFFECTS: none. 
@@ -207,6 +208,81 @@ void fileSysInit(module_t *mod)
 int32_t fileOpen(const uint8_t* filename){
 	return 0;
 }
+
+
+
+/* 
+ * fileWrite
+ *
+ * DESCRIPTION: Write to the file 
+ * INPUT: dummy value.
+ * OUTPUT: returns -1
+ * SIDE_EFFECTS: none. 
+ */
+int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes){
+	return ERROR_VAL;
+}
+
+
+/* 
+ * fileClose
+ *
+ * DESCRIPTION: close the file 
+ * INPUT: dummy value.
+ * OUTPUT: returns 0
+ * SIDE_EFFECTS: none. 
+ */
+int32_t fileClose(int32_t fd){
+	return 0;
+}
+
+
+
+
+
+//DIRECTORY FUNCTIONS
+
+
+/* 
+ * directoryOpen
+ *
+ * DESCRIPTION: Open directory
+ * INPUT: dummy argument.
+ * OUTPUT: returns 0
+ * SIDE_EFFECTS: none. 
+ */
+int32_t directoryOpen(const uint8_t* filename){
+	return 0;
+}
+
+
+
+/*  
+ * directoryWrite
+ *
+ * DESCRIPTION: Write to the directory
+ * INPUT: dummy argument.
+ * OUTPUT: returns -1
+ * SIDE_EFFECTS: none. 
+ */
+int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes){
+	return ERROR_VAL;
+}
+
+
+/* 
+ * directoryClose
+ *
+ * DESCRIPTION: Close directory
+ * INPUT: dummy argument.
+ * OUTPUT: returns 0
+ * SIDE_EFFECTS: none. 
+ */
+int32_t directoryClose(int32_t fd){
+	return 0;
+}
+
+
 
 /* 
  * fileReadIdx
@@ -229,161 +305,3 @@ int32_t fileReadIdx(uint32_t index, void * buf, int32_t nbytes){
 	// return data read
 	return read_data (dentry.inodeNum, 0, buf, nbytes);
 }
-
-/* 
- * fileWrite
- *
- * DESCRIPTION: Write to the file 
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
- */
-int32_t fileWrite(int32_t fd, const void* buf, int32_t nbytes){
-	return ERROR_VAL;
-}
-
-
-/* 
- * fileClose
- *
- * DESCRIPTION: Write to the file 
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
- */
-int32_t fileClose(int32_t fd){
-	return 0;
-}
-
-
-
-
-
-//DIRECTORY FUNCTIONS
-
-
-/* 
- * directoryOpen
- *
- * DESCRIPTION: Open nothing 
- * INPUT: dummy argument.
- * OUTPUT: returns 0
- * SIDE_EFFECTS: none. 
- */
-int32_t directoryOpen(const uint8_t* filename){
-	return 0;
-}
-
-
-
-/*  
- * directoryWrite
- *
- * DESCRIPTION: Write to the file 
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
- */
-int32_t directoryWrite(int32_t fd, const void* buf, int32_t nbytes){
-	return ERROR_VAL;
-}
-
-
-/* 
- * directoryClose
- *
- * DESCRIPTION: Write to the file 
- * INPUT: none.
- * OUTPUT: returns -1
- * SIDE_EFFECTS: none. 
- */
-int32_t directoryClose(int32_t fd){
-	return 0;
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/* 
- * testDirRead
- *
- * DESCRIPTION: Read all the directory files
- * INPUT: none.
- * OUTPUT: Print directory files to the terminal
- * SIDE_EFFECTS: none. 
-
-void testDirRead()
-{
-	//Read all files in directory
-	uint8_t buf[MAX_FILENAME_LENGTH];
-	directoryRead(0, (void *) buf, (int32_t) MAX_FILENAME_LENGTH);
-	//printf("dirRead done");
-}
-
- */
-
-
-
-/* 
- * testFileRead
- *
- * DESCRIPTION: If valid file name, print contents of file to the terminal
- * INPUT: none.
- * OUTPUT: Print directory files contents to the terminal
- * SIDE_EFFECTS: none. 
-
-void testFileRead(uint8_t * fname)
-{
-	// fill in buffer about file
-	//uint8_t* fname = (uint8_t *)"frame0.txt";
-	int32_t nbytes = BUFFER_TEST_SIZE;
-	uint8_t buf[nbytes];
-	int32_t bufLength = fileRead(fname, buf, nbytes);
-	
-	// Print file stuff
-	terminalWrite(0, (void *)buf, bufLength);
-	terminalWrite(0, (void *)"\nfile_name: ", FNAME_L);
-	terminalWrite(0, (void *)fname, strlenFile((int8_t *)fname, MAX_FILENAME_LENGTH));
-	terminalWrite(0, (void *)"\n", 1);
-}
- */
-
-/* 
- * testDirRead
- *
- * DESCRIPTION: If valid file name, print contents of file to the terminal
- * INPUT: none.
- * OUTPUT: Print directory files to the terminal
- * SIDE_EFFECTS: none. 
-
-void testFileIndex(uint32_t index)
-{
-	// fill in buffer about file
-	//uint8_t* fname = (uint8_t *)"frame0.txt";
-	int32_t nbytes = BUFFER_TEST_SIZE;
-	uint8_t buf[nbytes];
-	int32_t bufLength = fileReadIdx(index, buf, nbytes);
-	
-	// Print file stuff
-	terminalWrite(0, (void *)buf, bufLength);
-	terminalWrite(0, (void *)"\n", 1);
-}
-
- */
-
-
-
-
-

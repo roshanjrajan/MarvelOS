@@ -52,7 +52,8 @@
 extern void switch_to_user_mode(uint32_t starting_addr);
 extern void initialize_FDT(int32_t pid);
 extern void initialize_PCB_pointers();
-extern int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
+int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
+int32_t directoryOpen(const uint8_t* filename);
 void initialize_fops();
 
 //System call dispatcher function
