@@ -19,6 +19,8 @@
 
 #define SIZE_PHYSICAL_ADDRESS 20
 #define PDE_PTE_ADDRESS_SHIFT 12
+#define USER_PAGE_TABLE_INDEX 128
+#define USER_VIDEO_MEM_INDEX 0
 
 /* A page directory entry struct */
 typedef union pde_desc_t {

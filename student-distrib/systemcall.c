@@ -15,9 +15,44 @@ int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
-	return read_data(fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
+	int bytesRead = read_data(fdt[fd].inodeNum, fdt[fd].file_position, buf, nbytes);
+	if(bytesRead == ERROR_VAL)
+		return ERROR_VAL;
+	fdt[fd].file_position += bytesRead;
+	return bytesRead;
 }
 
+
+/* 
+ * directoryRead
+ *
+ * DESCRIPTION: Print all the files in the directory to terminal
+ * INPUT: int32_t fd, void * buf, int32_t nbytes
+ * 		  uint8_t * buf = buffer to be filled
+ * OUTPUT: returns -1 if bad file index else number of bytes for each file
+ * SIDE_EFFECTS: Prints out the directory entry associated with directory files
+ */
+int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
+	
+	// Check if valid fdt entry
+	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
+		return ERROR_VAL;
+	}
+
+	// Make sure to read through all the files entries
+	if(fdt[fd].file_position == fileSysBootBlock->numDirectories) {
+		fdt[fd].file_position = 0;
+		return 0;
+	}
+
+	dentry_t dentry;
+	if(read_dentry_by_index (fdt[fd].file_position, &dentry) != 0)
+		return ERROR_VAL; // Done with all of them
+		
+	strncpy((int8_t* )buf, (const int8_t*)(dentry.fileName), (uint32_t) MAX_FILENAME_LENGTH);
+	fdt[fd].file_position++;
+	return MAX_FILENAME_LENGTH;
+}
 
 
 
@@ -196,7 +231,7 @@ int32_t sys_halt (uint8_t status) {
  */
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
-	uint8_t * args = NULL;
+	uint8_t args[128];
 	uint8_t fname[FNAME_SIZE];
 	int i;
 
@@ -228,14 +263,15 @@ int32_t sys_execute (const uint8_t* command){
 	}
 	
 	// Ignore spaces between name and args
-	i=0;
+	//i=0;
 	while(command[i] == ' '){
 		i++;
 	}
 	
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
-		args = (uint8_t *) &command[i];
+		strncpy((int8_t *) args, (const int8_t *)&command[i], (uint32_t)127);
+		args[127]='\0';
 	}
 	
 	//Make sure our file is valid
@@ -278,13 +314,14 @@ int32_t sys_execute (const uint8_t* command){
 	clearTLB();
 
 	//Start populating PCB data
-	PCB_ptrs[pid] = (PCB_t *) EIGHT_MB - ((pid + 1) * EIGHT_KB);	//Making space at top of process's kernel stack
+	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
-	PCB_ptrs[pid] -> arg_ptr = args;
+	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, 128);
+	//PCB_ptrs[pid] -> arg_ptr = args;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
 	//Perform loading procedure
@@ -337,7 +374,7 @@ int32_t sys_execute (const uint8_t* command){
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	/* Check if fd is valid index */
-	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES || fd < 0) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -358,7 +395,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
  */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 	/* Check if fd is valid index */
-	if(fd == 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	if(fd <= 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -460,6 +497,10 @@ int32_t sys_close (int32_t fd) {
 	if(fd < NOT_IN_OUT || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
+	
+	/* Ensure file is in use */
+	if(fdt[fd].flags == UNUSED_FLAG)
+		return ERROR_VAL;
 
 	(*fdt[fd].fops_pointer->close)(fd);
 	fdt[fd].flags = UNUSED_FLAG;
@@ -472,15 +513,66 @@ int32_t sys_close (int32_t fd) {
  * DESCRIPTION: Close file
  * INPUT:  uint8_t* buf - buffer to copy args into
  *		   int32_t nbytes - number of bytes to copy
- * OUTPUT: 0 (success)
+ * OUTPUT: 0 (success), ERROR_VAL for error(buffer not big enough)
  * SIDE_EFFECTS: Get the arguments and copy 
  */
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
-	strncpy((int8_t *) buf, (const int8_t *) PCB_ptrs[cur_pid] -> arg_ptr, nbytes);
+	strncpy((int8_t *) buf, (const int8_t *) (PCB_ptrs[cur_pid] -> arg_ptr), 128);
+	if(buf[127] != '\0')
+		return ERROR_VAL;
 	return 0;
 }
 
 int32_t sys_vidmap (uint8_t** screen_start){
+	//Make sure our argument is not null
+	if(screen_start == NULL) {
+		return ERROR_VAL;
+	}
+
+	//Make sure that we aren't writing to 0-8MB range (kernel space)
+	if( (uint32_t) (*screen_start) < EIGHT_MB) {
+		return ERROR_VAL;
+	}
+
+	/* Determine a new virtual address for user to access vidmap data
+		We arbitrarily choose the virtual address of 512 MB for vidmap.
+		We check to make sure the page is not used, and then set up the PTE */
+	uint32_t new_address, i;
+	new_address = USER_VIDMAP_ADDR;
+
+	/* Check to make sure that the page isn't already used */
+	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
+	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
+	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
+	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
+	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
+
+	/* Initialize all the user page table entries to unused  */
+	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
+		user_page_table[i].present = 0;
+	}
+
+	/* initialize the page in the user page table for a video memory entry */
+	page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+	page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
+	page_table[USER_VIDEO_MEM_INDEX].global = 1;
+	page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
+	page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
+	page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
+	page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
+	page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
+	page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
+	page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
+	page_table[USER_VIDEO_MEM_INDEX].present = 1;
+
+	//Save our new address back into the user space
+	strncpy((int8_t *) *screen_start, (int8_t *) &new_address, 4);
 
 	//Make sure our argument is not null
 	if(screen_start == NULL) {
@@ -537,12 +629,12 @@ int32_t sys_vidmap (uint8_t** screen_start){
 
 int32_t sys_sethandler (int32_t signum, void* handler_address){
 	
-	return 0;
+	return ERROR_VAL;
 }
 
 int32_t sys_sigreturn (void){
 	
-	return 0;
+	return ERROR_VAL;
 }
 
 /*  

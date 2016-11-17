@@ -14,7 +14,7 @@
 #define REGULAR_FILE_FILETYPE 2
 #define STDIN_INDEX_IN_FDT 0
 #define STDOUT_INDEX_IN_FDT 1
-#define MAX_PROCESSES 2
+#define MAX_PROCESSES 6
 #define MAX_NUM_FDT_ENTRIES 8
 #define EXECUTABLE_CHECK_BUFFER_SIZE 4
 #define EIGHT_MB 0x00800000
@@ -101,7 +101,7 @@ typedef struct __attribute__((packed)) PCB {
 	uint32_t esp;
 	uint32_t ebp;
 	uint8_t exception_flag : 1;
-	uint8_t * arg_ptr;
+	uint8_t arg_ptr[128];
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 

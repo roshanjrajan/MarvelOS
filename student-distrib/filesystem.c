@@ -27,17 +27,20 @@ strlenFile(const int8_t* s, uint32_t maxStrLen)
 *	Function: copy the source string into the destination string (max length of maxStrLen)
 */
 
-int8_t*
+uint32_t
 strcpyFile(int8_t* dest, const int8_t* src, uint32_t maxStrLen)
 {
-	int32_t i=0;
+	uint32_t i=0;
+	uint32_t bytesCopied = 0;
 	// Wait while null terminator of max string length
 	while(src[i] != '\0' && i < maxStrLen) {
 		dest[i] = src[i];
 		i++;
 	}
+	bytesCopied = i;
+	//strncpy(dest, src, i);
 
-	return dest;
+	return bytesCopied;
 }
 
 
@@ -127,8 +130,12 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 	// Current fileInode
 	inode_t fileInode = *((inode_t *)(bootMemAddr + FILESYSTEM_BLOCKSIZE*(inode + 1)));
 	
+	//Check if we are at the end of the file
+	if(offset == fileInode.length)
+		return 0;
+	
 	// Check if offset is within file bounds
-	if(offset < 0 || offset >= fileInode.length)
+	if(offset < 0 || offset > fileInode.length)
 		return ERROR_VAL;
 	
 
@@ -136,7 +143,7 @@ int32_t read_data (uint32_t inode, uint32_t offset, uint8_t* buf, uint32_t lengt
 	uint32_t dataBlockIndex = offset/FILESYSTEM_BLOCKSIZE;
 	uint32_t dataBlockOffset = offset%FILESYSTEM_BLOCKSIZE;
 	uint32_t bytesCopied = 0;
-	uint32_t copyLength = MIN(length, fileInode.length);
+	uint32_t copyLength = MIN(length, fileInode.length-offset);
 	
 	
 	// Start of current copy
@@ -267,42 +274,7 @@ int32_t directoryOpen(const uint8_t* filename){
 	return 0;
 }
 
-/* 
- * directoryRead
- *
- * DESCRIPTION: Print all the files in the directory to terminal
- * INPUT: int32_t fd, void * buf, int32_t nbytes
- * 		  uint8_t * buf = buffer to be filled
- * OUTPUT: returns -1 if bad file index else fills in the buffer to be printed
- * SIDE_EFFECTS: Prints out the directory entry associated with directory files
- */
-int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
-	
-	// For each file in directory
-	int index;
-	dentry_t dentry;
-	for(index = 0; index < fileSysBootBlock->numDirectories; index++)
-	{
-		//printf("1Index: %d", index);
-		// Fill in dentry of index
-		
-		if(read_dentry_by_index (index, &dentry) != 0)
-			return ERROR_VAL; // Done with all of them
-		
-		
-		// copy filename to buffer
-		strcpyFile((int8_t *)buf, (int8_t *)(dentry.fileName), MAX_FILENAME_LENGTH);
-		
-		//print file name to terminal
-		//printf("2Index: %d\n", index);
-		uint32_t bufLength = strlenFile((int8_t *)dentry.fileName, MAX_FILENAME_LENGTH);
-		terminalWrite(0, (void *)buf, (int32_t)bufLength);
-		terminalWrite(0, (void *)"\n", 1);
-	}
-	//printf("done");
-	
-	return 0;
-}
+
 
 /*  
  * directoryWrite
