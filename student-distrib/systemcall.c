@@ -488,14 +488,14 @@ int32_t sys_vidmap (uint8_t** screen_start){
 	}
 
 	//Make sure that we aren't writing to 0-8MB range (kernel space)
-	if((*screen_start) < EIGHT_MB) {
+	if( (uint32_t) (*screen_start) < EIGHT_MB) {
 		return ERROR_VAL;
 	}
 
 	/* Determine a new virtual address for user to access vidmap data
 		We arbitrarily choose the virtual address of 512 MB for vidmap.
 		We check to make sure the page is not used, and then set up the PTE */
-	uint32_t new_address;
+	uint32_t new_address, i;
 	new_address = USER_VIDMAP_ADDR;
 
 	/* Check to make sure that the page isn't already used */
@@ -530,7 +530,7 @@ int32_t sys_vidmap (uint8_t** screen_start){
 	page_table[USER_VIDEO_MEM_INDEX].present = 1;
 
 	//Save our new address back into the user space
-	strncpy(*screen_start, &new_address, 4);
+	strncpy((int8_t *) *screen_start, (int8_t *) &new_address, 4);
 
 	return 0;
 }
