@@ -481,21 +481,56 @@ int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
 }
 
 int32_t sys_vidmap (uint8_t** screen_start){
-	
+
 	//Make sure our argument is not null
-	if((screen_start == NULL) || (*screen_start == NULL)) {
+	if(screen_start == NULL) {
 		return ERROR_VAL;
 	}
 
-	//Make sure the virtual addr given by the caller isn't in the 0-4MB range
+	//Make sure that we aren't writing to 0-8MB range (kernel space)
+	if((*screen_start) < EIGHT_MB) {
+		return ERROR_VAL;
+	}
+
+	/* Determine a new virtual address for user to access vidmap data
+		We arbitrarily choose the virtual address of 512 MB for vidmap.
+		We check to make sure the page is not used, and then set up the PTE */
 	uint32_t new_address;
-	strncpy(&new_address, *screen_start, 4);
-	if(new_address < FOUR_MB) {
-		return ERROR_VAL;
+	new_address = USER_VIDMAP_ADDR;
+
+	/* Check to make sure that the page isn't already used */
+	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
+	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
+	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
+	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
+	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
+	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
+
+	/* Initialize all the user page table entries to unused  */
+	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
+		user_page_table[i].present = 0;
 	}
 
-	//TODO: do the paging stuff for the vidmap. It's not too bad....
+	/* initialize the page in the user page table for a video memory entry */
+	page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+	page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
+	page_table[USER_VIDEO_MEM_INDEX].global = 1;
+	page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
+	page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
+	page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
+	page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
+	page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
+	page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
+	page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
+	page_table[USER_VIDEO_MEM_INDEX].present = 1;
 
+	//Save our new address back into the user space
+	strncpy(*screen_start, &new_address, 4);
 
 	return 0;
 }
