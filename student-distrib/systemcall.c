@@ -23,6 +23,37 @@ int32_t fileRead(int32_t fd, void * buf, int32_t nbytes){
 }
 
 
+/* 
+ * directoryRead
+ *
+ * DESCRIPTION: Print all the files in the directory to terminal
+ * INPUT: int32_t fd, void * buf, int32_t nbytes
+ * 		  uint8_t * buf = buffer to be filled
+ * OUTPUT: returns -1 if bad file index else number of bytes for each file
+ * SIDE_EFFECTS: Prints out the directory entry associated with directory files
+ */
+int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
+	
+	// Check if valid fdt entry
+	if(fd < 0 || fd > MAX_NUM_FDT_ENTRIES) {
+		return ERROR_VAL;
+	}
+
+	// Make sure to read through all the files entries
+	if(fdt[fd].file_position == fileSysBootBlock->numDirectories) {
+		fdt[fd].file_position = 0;
+		return 0;
+	}
+
+	dentry_t dentry;
+	if(read_dentry_by_index (fdt[fd].file_position, &dentry) != 0)
+		return ERROR_VAL; // Done with all of them
+		
+	strncpy((int8_t* )buf, (const int8_t*)(dentry.fileName), (uint32_t) MAX_FILENAME_LENGTH);
+	fdt[fd].file_position++;
+	return MAX_FILENAME_LENGTH;
+}
+
 
 
 /*  
@@ -239,7 +270,7 @@ int32_t sys_execute (const uint8_t* command){
 	
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
-		strncpy(args, &command[i], 127);
+		strncpy((int8_t *) args, (const int8_t *)&command[i], (uint32_t)127);
 		args[127]='\0';
 	}
 	
@@ -343,7 +374,7 @@ int32_t sys_execute (const uint8_t* command){
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	/* Check if fd is valid index */
-	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES || fd < 0) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -364,7 +395,7 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
  */
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 	/* Check if fd is valid index */
-	if(fd == 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	if(fd <= 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -466,6 +497,10 @@ int32_t sys_close (int32_t fd) {
 	if(fd < NOT_IN_OUT || fd > MAX_NUM_FDT_ENTRIES) {
 		return ERROR_VAL;
 	}
+	
+	/* Ensure file is in use */
+	if(fdt[fd].flags == UNUSED_FLAG)
+		return ERROR_VAL;
 
 	(*fdt[fd].fops_pointer->close)(fd);
 	fdt[fd].flags = UNUSED_FLAG;
@@ -485,10 +520,6 @@ int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
 	strncpy((int8_t *) buf, (const int8_t *) (PCB_ptrs[cur_pid] -> arg_ptr), 128);
 	if(buf[127] != '\0')
 		return ERROR_VAL;
-	//terminalWrite(0, buf, 128);
-	//buf[0]='l';
-	//buf[1]='s';
-	//buf[2]='\0';
 	return 0;
 }
 
