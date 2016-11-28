@@ -426,6 +426,9 @@ int32_t sys_execute (const uint8_t* command){
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	/* Check if fd is valid index */
 	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES || fd < 0) return ERROR_VAL;
+	
+	/* Check valid buf and nbytes */
+	if(buf == NULL || nbytes < 0) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -447,6 +450,9 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 	/* Check if fd is valid index */
 	if(fd <= 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	
+	/* Check valid buf and nbytes */
+	if(buf == NULL || nbytes < 0) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -466,6 +472,9 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 int32_t sys_open (const uint8_t* filename){
 	int index;
 	fdt = PCB_ptrs[cur_pid]->process_fdt;
+	
+	/* Check valid filename */
+	if(filename == NULL) return ERROR_VAL;
 
 	// Check if opening stdin
 	if(strncmp((const int8_t *) filename,(const int8_t *) "stdin", 5) == 0) {
@@ -568,6 +577,10 @@ int32_t sys_close (int32_t fd) {
  * SIDE_EFFECTS: Get the arguments and copy 
  */
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
+	
+	/* Check valid buf and nbytes */
+	if(buf == NULL || nbytes < 0) return ERROR_VAL;
+	
 	strncpy((int8_t *) buf, (const int8_t *) (PCB_ptrs[cur_pid] -> arg_ptr), 128);
 	if(buf[127] != '\0')
 		return ERROR_VAL;
