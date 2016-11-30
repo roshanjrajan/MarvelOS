@@ -296,7 +296,7 @@ static void init_process_paging(int pid) {
  */
 int32_t sys_execute (const uint8_t* command){
 	int pid=0;
-	uint8_t args[128];
+	uint8_t args[ARG_SIZE];
 	uint8_t fname[FNAME_SIZE];
 	int i;
 
@@ -335,8 +335,8 @@ int32_t sys_execute (const uint8_t* command){
 	
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
-		strncpy((int8_t *) args, (const int8_t *)&command[i], (uint32_t)127);
-		args[127]='\0';
+		strncpy((int8_t *) args, (const int8_t *)&command[i], (uint32_t)ARG_SIZE_WITHOUT_NULL_TERMINATOR);
+		args[ARG_NULL_TERMINATOR_INDEX]='\0';
 	}
 	
 	//Make sure our file is valid
@@ -371,7 +371,7 @@ int32_t sys_execute (const uint8_t* command){
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
-	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, 128);
+	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, ARG_SIZE);
 	//PCB_ptrs[pid] -> arg_ptr = args;
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
@@ -425,7 +425,10 @@ int32_t sys_execute (const uint8_t* command){
  */
 int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 	/* Check if fd is valid index */
-	if(fd == 1|| fd > MAX_NUM_FDT_ENTRIES || fd < 0) return ERROR_VAL;
+	if(fd == STDIN_FLAG || fd > MAX_NUM_FDT_ENTRIES || fd < 0) return ERROR_VAL;
+	
+	/* Check valid buf and nbytes */
+	if(buf == NULL || nbytes < 0) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -447,6 +450,9 @@ int32_t sys_read (int32_t fd, void* buf, int32_t nbytes) {
 int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 	/* Check if fd is valid index */
 	if(fd <= 0|| fd > MAX_NUM_FDT_ENTRIES) return ERROR_VAL;
+	
+	/* Check valid buf and nbytes */
+	if(buf == NULL || nbytes < 0) return ERROR_VAL;
 
 	/* Ensure file is in use */
 	if (fdt[fd].flags == UNUSED_FLAG) return ERROR_VAL;
@@ -466,12 +472,15 @@ int32_t sys_write (int32_t fd, const void* buf, int32_t nbytes){
 int32_t sys_open (const uint8_t* filename){
 	int index;
 	fdt = PCB_ptrs[cur_pid]->process_fdt;
+	
+	/* Check valid filename */
+	if(filename == NULL) return ERROR_VAL;
 
-	// Check if opening stdin
+	// Check if opening 'stdin', which is 5 characters long
 	if(strncmp((const int8_t *) filename,(const int8_t *) "stdin", 5) == 0) {
 		index = 0; 
 	}
-	// Check if opening stdout
+	// Check if opening 'stdout', which is 6 characters long
 	else if(strncmp((const int8_t *) filename, (const int8_t *) "stdout", 6) == 0) {
 		index = 1;
 	}
@@ -568,8 +577,12 @@ int32_t sys_close (int32_t fd) {
  * SIDE_EFFECTS: Get the arguments and copy 
  */
 int32_t sys_getargs (uint8_t* buf, int32_t nbytes){
-	strncpy((int8_t *) buf, (const int8_t *) (PCB_ptrs[cur_pid] -> arg_ptr), 128);
-	if(buf[127] != '\0')
+	
+	/* Check valid buf and nbytes */
+	if(buf == NULL || nbytes < 0) return ERROR_VAL;
+	
+	strncpy((int8_t *) buf, (const int8_t *) (PCB_ptrs[cur_pid] -> arg_ptr), ARG_SIZE);
+	if(buf[ARG_NULL_TERMINATOR_INDEX] != '\0')
 		return ERROR_VAL;
 	return 0;
 }
