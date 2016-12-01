@@ -14,6 +14,11 @@
 #define CTM 0x1d
 #define CTB 0x9d
 #define CLEAR 0x26
+#define ALTM 0x38
+#define ALTB 0xb8
+#define TERMINAL_0_SCANCODE 0x3b
+#define TERMINAL_1_SCANCODE 0x3c
+#define TERMINAL_2_SCANCODE 0x3d
 #define CAPS 0x3a
 #define SLM 0x2a
 #define SLB 0xaa
@@ -25,6 +30,21 @@
 #define MOD2 2
 #define CAPS_OFF 64
 #define SHIFT_OFF 128
+
+// PIDs for different terminals
+#define NUM_TERMINALS 3
+#define TERMINAL_0_PID 0
+#define TERMINAL_1_PID 1
+#define TERMINAL_2_PID 2
+
+// Variable and function used for switching between terminals
+uint8_t currentTerminal;
+extern int32_t switchTerminal(uint8_t newTerminal);
+
+/*
+ * Keyboard buffer array
+ */
+char KBbuf [NUM_TERMINALS] [BUF_SIZE];
 
 // Functions used to define the keyboard and terminal
 extern void KBhandler();

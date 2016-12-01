@@ -1,5 +1,46 @@
 #include "systemcall.h"
 
+
+int32_t switchTerminal(uint8_t newTerminal) {
+	//printf("Current terminal is: %d \n", newTerminal);
+
+	//Make sure we have valid new terminal index 
+	if(newTerminal > TERMINAL_2_PID) {
+		return ERROR_VAL;
+	}
+
+	//pause the current process	
+	PCB_ptrs[cur_pid] -> pause_process_flag = 1;
+
+	//save current eip	
+	uint32_t cur_eip = get_eip();
+	PCB_ptrs[cur_pid] -> current_eip = cur_eip;
+
+	//Launch the new process. 
+	//This is the first instance of the new terminal, so just launch shell
+	if(PCB_ptrs[newTerminal] == NULL) {
+		send_eoi(KB_IRQ);
+
+		//**************************TODO: Copy more than just the first 128 bytes of data
+		memcpy((char *)VIDEO, (const char *) KBbuf[currentTerminal], BUF_SIZE);
+	
+		//**************************TODO: Modify execute so that first 3 pids are for sure terminal processes 
+		sys_execute((uint8_t *)"shell");
+	}
+
+	//New terminal has been launched before, and already has a child, so launch child
+	else if (PCB_ptrs[newTerminal] -> has_child_flag) {
+		//******************************TODO:Resume its child process
+	}
+
+	//New terminal has been launched before, but doesn't have a child, so resume terminal
+	else{
+		//******************************TODO:Resume terminal process
+	}
+
+	return 0;
+}
+
 /* 
  * fileRead
  *
@@ -367,9 +408,28 @@ int32_t sys_execute (const uint8_t* command){
 	//Start populating PCB data
 	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
-	PCB_ptrs[pid] -> parent_pid = cur_pid;
+
+	//We are running a process within a terminal
+	if(pid > TERMINAL_2_PID) {
+		PCB_ptrs[pid] -> parent_pid = cur_pid;
+		PCB_ptrs[pid] -> parent_terminal = currentTerminal;
+		PCB_ptrs[currentTerminal] -> has_child_flag = 1;
+	}
+	//We are running a terminal
+	else{
+		PCB_ptrs[pid] -> parent_pid = -1;
+		PCB_ptrs[pid] -> parent_terminal = pid;
+		PCB_ptrs[pid] -> has_child_flag = 0;
+	}
+
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
+	PCB_ptrs[pid] -> pause_process_flag = 0;
+
+	//save current eip	
+	uint32_t cur_eip = get_eip();
+	PCB_ptrs[cur_pid] -> current_eip = cur_eip;
+
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
 	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, ARG_SIZE);
 	//PCB_ptrs[pid] -> arg_ptr = args;

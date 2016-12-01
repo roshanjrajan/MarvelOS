@@ -7,6 +7,7 @@
 #include "RTC.h"
 #include "types.h"
 #include "paging.h"
+#include "i8259.h"
 
 // General Constants
 #define RTC_DEVICE_FILETYPE 0
@@ -14,7 +15,7 @@
 #define REGULAR_FILE_FILETYPE 2
 #define STDIN_INDEX_IN_FDT 0
 #define STDOUT_INDEX_IN_FDT 1
-#define MAX_PROCESSES 2
+#define MAX_PROCESSES 6
 #define MAX_NUM_FDT_ENTRIES 8
 #define EXECUTABLE_CHECK_BUFFER_SIZE 4
 #define EIGHT_MB 0x00800000
@@ -55,6 +56,7 @@
 extern void switch_to_user_mode(uint32_t starting_addr);
 extern void initialize_FDT(int32_t pid);
 extern void initialize_PCB_pointers();
+extern uint32_t get_eip();
 int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
 int32_t directoryOpen(const uint8_t* filename);
 void initialize_fops();
@@ -80,7 +82,6 @@ int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes);
 int32_t dummy_open (const uint8_t* filename);
 int32_t dummy_close (int32_t fd);
 
-
 // Structs used
 typedef	struct __attribute__((packed)) fops_table
 {
@@ -105,6 +106,10 @@ typedef struct __attribute__((packed)) PCB {
 	uint32_t esp;
 	uint32_t ebp;
 	uint8_t exception_flag : 1;
+	uint8_t parent_terminal;
+	uint8_t has_child_flag : 1;
+	uint8_t pause_process_flag : 1;
+	uint32_t current_eip;
 	uint8_t arg_ptr[128];
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 

@@ -26,18 +26,14 @@ static char ascii_scan[ALL_SCODES] = {
 	'b', 'n', 'm', '<', '>', '?', 0, 0, 0, ' ', 0, 0, 0, 0, 0, 0
 };
 
-/*
- * Keyboard buffer array
- */
-char KBbuf[BUF_SIZE];
-
 int buf_loc;
-
 int capsFlag;
 int shiftFlagL;
 int shiftFlagR;
 int ctrlFlagL;
 int ctrlFlagR;
+int altFlagL;
+int altFlagR;
 int readWaiting;
 int readReady;
 
@@ -66,6 +62,11 @@ void KBhandler(){
 		if(scode == CTM || scode == CTB){
 			ctrlFlagR = (ctrlFlagR+1)%MOD2;	// Toggle flag
 		}
+
+		//Handle altR
+		if(scode == ALTM || scode == ALTB){
+			altFlagR = (altFlagR+1)%MOD2;	// Toggle flag
+		}
 	}
 	
 	// Handle cntrlL
@@ -73,6 +74,11 @@ void KBhandler(){
 		ctrlFlagL = (ctrlFlagL+1)%MOD2;	// Toggle flag
 	}
 	
+	//Handle altL
+	else if(scode == ALTM || scode == ALTB){
+		altFlagL = (altFlagL+1)%MOD2;	// Toggle flag
+	}
+
 	// Control modifier is pressed
 	else if(ctrlFlagL || ctrlFlagR){
 		// Ctrl-L means clear display and input buffer
@@ -81,10 +87,38 @@ void KBhandler(){
 			// Write things that are currently in the buffer
 			int i = 0;
 			for(i=0; i<buf_loc; i++)
-				putc(KBbuf[i]);
+				putc(KBbuf[currentTerminal][i]);
 		}
 	}
-	
+
+	//Alt modifier is pressed
+	else if(altFlagL || altFlagR){
+		int validTerminal = 0;
+
+		//F1 means to switch to terminal 0
+		if(scode == TERMINAL_0_SCANCODE && currentTerminal != TERMINAL_0_PID) {
+			currentTerminal = TERMINAL_0_PID;
+			validTerminal = 1;
+		}
+
+		//F2 means to switch to terminal 1
+		else if(scode == TERMINAL_1_SCANCODE && currentTerminal != TERMINAL_1_PID) {
+			currentTerminal = TERMINAL_1_PID;
+			validTerminal = 1;
+		}
+		
+		//F3 means to switch to terminal 2		
+		else if(scode == TERMINAL_2_SCANCODE && currentTerminal != TERMINAL_2_PID) {
+			currentTerminal = TERMINAL_2_PID;
+			validTerminal = 1;
+		}
+
+		//Call an externally defined function to perform the video and context switch
+		if(validTerminal) {
+			switchTerminal(currentTerminal);
+		}
+	}
+
 	// Handle caps lock
 	else if(scode == CAPS){
 		capsFlag = (capsFlag+1)%MOD2;	// Toggle flag
@@ -105,7 +139,7 @@ void KBhandler(){
 		// Move cursor back, erase, and remove from buffer
 		if(buf_loc != 0){
 			buf_loc--;
-			KBbuf[buf_loc] = 0;
+			KBbuf[currentTerminal][buf_loc] = 0;
 			
 			// Erase on screen
 			erase_char();
@@ -120,19 +154,19 @@ void KBhandler(){
 		// Newline will clear buffer or get ready for reading, other values just populate buffer
 		if(c == '\n'){
 			if(readWaiting){
-				KBbuf[buf_loc] = c;
+				KBbuf[currentTerminal][buf_loc] = c;
 				buf_loc++;
 				readReady = 1;
 			}else{
 				// Clear buffer
 				while(buf_loc > 0){
 					buf_loc--;
-					KBbuf[buf_loc] = 0;
+					KBbuf[currentTerminal][buf_loc] = 0;
 				}
 			}
 		}else{
 			// Add to buffer
-			KBbuf[buf_loc] = c;
+			KBbuf[currentTerminal][buf_loc] = c;
 			buf_loc++;
 		}
 	}
@@ -155,19 +189,24 @@ void KBhandler(){
  * SIDE_EFFECTS: clears input buffer and terminal driver flags. 
  */
 extern int32_t terminalOpen(const uint8_t* filename){
-	int i;
+	int i,j;
 	// Clearing flags
 	capsFlag = 0;
 	shiftFlagL = 0;
 	shiftFlagR = 0;
 	ctrlFlagL = 0;
 	ctrlFlagR = 0;
+	altFlagL = 0;
+	altFlagR = 0;
 	readWaiting = 0;
 	readReady = 0;
-	// Clearing buffer
-	for(i=0; i<BUF_SIZE; i++){
-		KBbuf[i] = 0;
-	}
+	currentTerminal = TERMINAL_0_PID;
+	// Clearing buffers
+	for(j=0; j<NUM_TERMINALS; j++) {
+		for(i=0; i<BUF_SIZE; i++){
+		KBbuf[j][i] = 0;
+		}
+	}	
 	buf_loc = 0;
 	return 0;
 }
@@ -203,13 +242,13 @@ extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
 	int flags;
 	cli_and_save(flags);
 	for(bytes = 0; bytes<nbytes; bytes++){
-		((char *)buf)[bytes] = KBbuf[bytes];
+		((char *)buf)[bytes] = KBbuf[currentTerminal][bytes];
 		if(((char *)buf)[bytes] == '\n'){
 			bytes++;
 			break;
 		}
 	}
-	memset(KBbuf, 0, BUF_SIZE);
+	memset(KBbuf[currentTerminal], 0, BUF_SIZE);
 	readReady = 0;
 	readWaiting = 0;
 	buf_loc = 0;

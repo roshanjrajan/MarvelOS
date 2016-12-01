@@ -15,6 +15,7 @@
 #some global functions
 .globl 	syscall
 .globl	switch_to_user_mode
+.globl 	get_eip
 
 
 # syscall
@@ -115,3 +116,7 @@ switch_to_user_mode:
 	#push program eip to stack
 	push %ecx
 	iret
+
+get_eip:
+	movl (%esp), %eax
+	ret

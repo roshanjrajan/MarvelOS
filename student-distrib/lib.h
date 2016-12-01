@@ -6,6 +6,7 @@
 #define _LIB_H
 
 #define ERROR_VAL -1
+#define VIDEO 0xB8000
 
 #include "types.h"
 
