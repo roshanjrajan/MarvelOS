@@ -341,6 +341,10 @@ void init_interrupts(){
 		idt[i].present = 0;
 	}
 
+	// put pit handler into IDT
+	SET_IDT_ENTRY(idt[PIT_IRQ+NUM_EXCEPTIONS], PIThandler);
+	idt[PIT_IRQ+NUM_EXCEPTIONS].present = 1;
+
 	// put keyboard handler into IDT
 	SET_IDT_ENTRY(idt[KB_IRQ+NUM_EXCEPTIONS], KBhandler);
 	idt[KB_IRQ+NUM_EXCEPTIONS].present = 1;
