@@ -2,6 +2,7 @@
 #define PAGING_H
 
 #include "types.h"
+#include "lib.h"
 
 // General Constants
 #define PAGE_ENABLE_MASK 0x80000000
@@ -15,29 +16,10 @@
 #define KERNEL_4KB_ALIGNED_ADDRESS 0x00400000
 #define USER_PAGE_TABLE_INDEX 128
 #define USER_VIDEO_MEM_INDEX 0
-#define SIZE_PHYSICAL_ADDRESS 20
 #define PDE_PTE_ADDRESS_SHIFT 12
 #define USER_PAGE_TABLE_INDEX 128
 #define USER_VIDEO_MEM_INDEX 0
 #define VIDEO_4KB_ALIGNED_ADDRESS 0xB8000
-
-/* A page directory entry struct */
-typedef union pde_desc_t {
-	uint32_t val;
-	struct {
-		uint8_t present: 1;
-		uint8_t read_write_permissions: 1;
-		uint8_t user_supervisor: 1;
-		uint8_t write_through: 1;
-		uint8_t cache_disable: 1;
-		uint8_t accessed: 1;
-		uint8_t reserved_2: 1;
-		uint8_t page_size: 1;
-		uint8_t reserved_1: 1;
-		uint8_t open_bits: 3;
-		uint32_t page_table_address: SIZE_PHYSICAL_ADDRESS;
-	} __attribute__((packed));
-} pde_desc_t;
 
 /* A page table entry struct */
 typedef union pte_desc_t {

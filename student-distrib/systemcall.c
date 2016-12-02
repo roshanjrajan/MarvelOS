@@ -1,43 +1,44 @@
 #include "systemcall.h"
 
 
-int32_t switchTerminal(uint8_t newTerminal) {
-	//printf("Current terminal is: %d \n", newTerminal);
-
+int32_t switchTerminal(uint8_t previousTerminal) {
 	//Make sure we have valid new terminal index 
-	if(newTerminal > TERMINAL_2_PID) {
+	if(previousTerminal > TERMINAL_2 || currentTerminal > TERMINAL_2) {
 		return ERROR_VAL;
 	}
 
+	//Save current terminal output to respective terminal memory
+	memcpy((char *) (VIDEO + (previousTerminal + 1) * FOUR_KB), (const char *)VIDEO, FOUR_KB);
+
+	//Move new terminal memory to display memory
+	memcpy((char *)VIDEO, (const char *) (VIDEO + (currentTerminal + 1) * FOUR_KB), FOUR_KB);
+
+	//Set location for cursors in new terminal
+	set_cursor(screen_x[currentTerminal], screen_y[currentTerminal]);
+
+	//Update the physical addresses that the different terminal video pages correspond to
+	unsigned int flags;
+	cli_and_save(flags);
+	user_page_table[USER_VIDEO_MEM_INDEX + previousTerminal].physical_address = (VIDEO_4KB_ALIGNED_ADDRESS +  (previousTerminal + 1) * FOUR_KB) >> PDE_PTE_ADDRESS_SHIFT;
+	user_page_table[USER_VIDEO_MEM_INDEX + currentTerminal].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+	restore_flags(flags);
+	KBputc((char) currentTerminal);
+
+
+////////////////////////////////////////
+	//**************************TODO: Modify execute so that first 3 pids are for sure terminal processes 
+
 	//pause the current process	
-	PCB_ptrs[cur_pid] -> pause_process_flag = 1;
+	//PCB_ptrs[cur_pid] -> pause_process_flag = 1;
 
 	//save current eip	
-	uint32_t cur_eip = get_eip();
-	PCB_ptrs[cur_pid] -> current_eip = cur_eip;
-
-	//Launch the new process. 
-	//This is the first instance of the new terminal, so just launch shell
-	if(PCB_ptrs[newTerminal] == NULL) {
-		send_eoi(KB_IRQ);
-
-		//**************************TODO: Copy more than just the first 128 bytes of data
-		memcpy((char *)VIDEO, (const char *) KBbuf[currentTerminal], BUF_SIZE);
-	
-		//**************************TODO: Modify execute so that first 3 pids are for sure terminal processes 
-		sys_execute((uint8_t *)"shell");
-	}
+	//uint32_t cur_eip = get_eip();
+	//PCB_ptrs[cur_pid] -> current_eip = cur_eip;
 
 	//New terminal has been launched before, and already has a child, so launch child
-	else if (PCB_ptrs[newTerminal] -> has_child_flag) {
-		//******************************TODO:Resume its child process
-	}
-
 	//New terminal has been launched before, but doesn't have a child, so resume terminal
-	else{
-		//******************************TODO:Resume terminal process
-	}
 
+///////////////////////////////////////////
 	return 0;
 }
 
@@ -272,8 +273,6 @@ int32_t sys_halt (uint8_t status) {
  * SIDE_EFFECTS: Sets up page directory for program, user space (vidmap)
  */
 static void init_process_paging(int pid) {
-	int i;
-
 	//Initialize paging for the process image (corresponds to virtual address 128 MB)
 	page_directory[PROCESS_PAGING_INDEX].page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
 	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
@@ -286,42 +285,6 @@ static void init_process_paging(int pid) {
 	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 1;
 	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1;
 	page_directory[PROCESS_PAGING_INDEX].present = 1;
-
-
-	/* Determine a new virtual address for user to access vidmap data
-		We arbitrarily choose the virtual address of 512 MB for vidmap.
-		We check to make sure the page is not used, and then set up the PTE */
-
-	/* Check to make sure that the page isn't already used */
-	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
-	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
-	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
-	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
-
-	/* Initialize all the user page table entries to unused  */
-	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
-		user_page_table[i].present = 0;
-	}
-
-	/* initialize the page in the user page table for a video memory entry */
-	user_page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
-	user_page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].global = 1;
-	user_page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
-	user_page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
-	user_page_table[USER_VIDEO_MEM_INDEX].present = 1;
 
 	//Flush the TLB for each new program
 	clearTLB();
@@ -350,6 +313,9 @@ int32_t sys_execute (const uint8_t* command){
 	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
 		pid++;
 	}
+
+	if(pid<3 && pid!=0)
+		pid=3;
 	
 	//Check if we are already running the maximum number of processes
 	if(pid == MAX_PROCESSES){
@@ -410,12 +376,12 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] -> pid = pid;
 
 	//We are running a process within a terminal
-	if(pid > TERMINAL_2_PID) {
+	if(pid > TERMINAL_2) {
 		PCB_ptrs[pid] -> parent_pid = cur_pid;
 		PCB_ptrs[pid] -> parent_terminal = currentTerminal;
 		PCB_ptrs[currentTerminal] -> has_child_flag = 1;
 	}
-	//We are running a terminal
+	//We are running the first shell on a new terminal
 	else{
 		PCB_ptrs[pid] -> parent_pid = -1;
 		PCB_ptrs[pid] -> parent_terminal = pid;
@@ -427,12 +393,12 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] -> pause_process_flag = 0;
 
 	//save current eip	
-	uint32_t cur_eip = get_eip();
-	PCB_ptrs[cur_pid] -> current_eip = cur_eip;
+	//uint32_t cur_eip = get_eip();
+	//PCB_ptrs[cur_pid] -> current_eip = cur_eip;
 
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
 	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, ARG_SIZE);
-	//PCB_ptrs[pid] -> arg_ptr = args;
+
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
 	//Perform loading procedure
@@ -667,9 +633,14 @@ int32_t sys_vidmap (uint8_t** screen_start){
 		return ERROR_VAL;
 	}
 
+	//Make sure paging is enabled for screen_start address
+	if((uint32_t) screen_start < ONE_HUNDRED_TWENTY_EIGHT_MB || (uint32_t) screen_start >= ONE_HUNDRED_THIRTY_TWO_MB) {
+		return ERROR_VAL;
+	}
+
 	//Save our new address back into the user space
-	uint32_t new_address = USER_VIDMAP_ADDR;
-	(*screen_start) = (uint8_t*) new_address;
+	uint32_t new_address = USER_VIDMAP_ADDR + (PCB_ptrs[cur_pid] -> parent_terminal) * FOUR_KB;
+	(*screen_start) = (uint8_t*) new_address;	
 
 	return 0;
 }

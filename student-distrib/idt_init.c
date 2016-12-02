@@ -340,7 +340,7 @@ void init_interrupts(){
 		idt[i].dpl = 0;
 		idt[i].present = 0;
 	}
-	
+
 	// put keyboard handler into IDT
 	SET_IDT_ENTRY(idt[KB_IRQ+NUM_EXCEPTIONS], KBhandler);
 	idt[KB_IRQ+NUM_EXCEPTIONS].present = 1;

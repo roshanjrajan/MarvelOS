@@ -13,8 +13,6 @@
 #define CURS_LO 0x0f
 #define BYTE_SHIFT 8
 
-static int screen_x;
-static int screen_y;
 static char* video_mem = (char *)VIDEO;
 
 /*
@@ -37,18 +35,25 @@ void set_cursor(int x, int y){
 
 /*
 *   text_shift_up
-*   Inputs: void
+*   Inputs: int terminalNum - number of the terminal in which to shift text up
 *   Return Value: none
 *	Function: shift all lines in the display up and clear the bottom line
 */
-void text_shift_up(){
+void text_shift_up(int terminalNum){
+
 	//Shifting video memory
-	memmove((void *)video_mem, (void *)video_mem + (NUM_COLS << 1), ((NUM_COLS*(NUM_ROWS-1))<<1));
-	
+	memmove((void *) (video_mem + (terminalNum + 1) * FOUR_KB), (void *)(video_mem + (terminalNum + 1) * FOUR_KB) + (NUM_COLS << 1), ((NUM_COLS*(NUM_ROWS-1))<<1));
+	if(terminalNum == currentTerminal) {
+		memmove((void *) video_mem, (void *)video_mem + (NUM_COLS << 1), ((NUM_COLS*(NUM_ROWS-1))<<1));
+	}
+
 	//Clearing bottom row
 	int i;
 	for(i=NUM_COLS-1; i>=0; i--){
-		*(uint8_t *)(video_mem + ((i+NUM_COLS*(NUM_ROWS-1)) << 1)) = ' ';
+		*(uint8_t *)((video_mem + (terminalNum + 1) * FOUR_KB) + ((i+NUM_COLS*(NUM_ROWS-1)) << 1)) = ' ';
+		if(terminalNum == currentTerminal) {
+			*(uint8_t *)(video_mem + ((i+NUM_COLS*(NUM_ROWS-1)) << 1)) = ' ';
+		}
 	}
 }
 
@@ -60,7 +65,7 @@ void text_shift_up(){
 */
 void erase_char(){
 	back_char();
-	putc(' ');
+	KBputc(' ');
 	back_char();
 }
 
@@ -71,16 +76,16 @@ void erase_char(){
 *	Function: moves current put location back by one
 */
 void back_char(){
-	if(screen_x == 0){	// Need to change rows
-		if(screen_y == 0){
+	if(screen_x[currentTerminal] == 0){	// Need to change rows
+		if(screen_y[currentTerminal] == 0){
 			return;	// Already at top left corner
 		}
-		screen_y--;
-		screen_x = NUM_COLS-1;
+		screen_y[currentTerminal]--;
+		screen_x[currentTerminal] = NUM_COLS-1;
 		return;
 	}
-	screen_x--;
-	set_cursor(screen_x, screen_y);
+	screen_x[currentTerminal]--;
+	set_cursor(screen_x[currentTerminal], screen_y[currentTerminal]);
 }
 
 /*
@@ -93,13 +98,13 @@ void back_char(){
 void
 clear(void)
 {
-	screen_x = screen_y = 0;
+	screen_x[currentTerminal] = screen_y[currentTerminal] = 0;
     int32_t i;
     for(i=0; i<NUM_ROWS*NUM_COLS; i++) {
         *(uint8_t *)(video_mem + (i << 1)) = ' ';
         *(uint8_t *)(video_mem + (i << 1) + 1) = ATTRIB;
     }
-	set_cursor(screen_x, screen_y);
+	set_cursor(screen_x[currentTerminal], screen_y[currentTerminal]);
 }
 
 /* Standard printf().
@@ -251,6 +256,35 @@ puts(int8_t* s)
 }
 
 /*
+* void KBputc(uint8_t c);
+*   Inputs: uint_8* c = character to print
+*   Return Value: void
+*	Function: Output a character to the console 
+*/
+
+void
+KBputc(uint8_t c)
+{
+    if(c == '\n' || c == '\r') {
+        screen_y[currentTerminal]++;
+        screen_x[currentTerminal]=0;
+    } else {
+        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y[currentTerminal] + screen_x[currentTerminal]) << 1)) = c;
+        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y[currentTerminal] + screen_x[currentTerminal]) << 1) + 1) = ATTRIB;
+        screen_x[currentTerminal]++;
+        screen_x[currentTerminal] %= NUM_COLS;
+		if(screen_x[currentTerminal] == 0){	// Need to move down a line
+			screen_y[currentTerminal]++;
+		}
+    }
+	if(screen_y[currentTerminal] >= NUM_ROWS){	// Need to shift up
+		text_shift_up(currentTerminal);
+		screen_y[currentTerminal]--;
+	}
+	set_cursor(screen_x[currentTerminal], screen_y[currentTerminal]);
+}
+
+/*
 * void putc(uint8_t c);
 *   Inputs: uint_8* c = character to print
 *   Return Value: void
@@ -260,23 +294,31 @@ puts(int8_t* s)
 void
 putc(uint8_t c)
 {
+	int process_terminal = PCB_ptrs[cur_pid] -> parent_terminal;
     if(c == '\n' || c == '\r') {
-        screen_y++;
-        screen_x=0;
+        screen_y[process_terminal]++;
+        screen_x[process_terminal]=0;
     } else {
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1)) = c;
-        *(uint8_t *)(video_mem + ((NUM_COLS*screen_y + screen_x) << 1) + 1) = ATTRIB;
-        screen_x++;
-        screen_x %= NUM_COLS;
-		if(screen_x == 0){	// Need to move down a line
-			screen_y++;
+        *(uint8_t *)( video_mem + (process_terminal + 1) * FOUR_KB  + ((NUM_COLS*screen_y[process_terminal] + screen_x[process_terminal]) << 1)) = c;
+        *(uint8_t *)( video_mem + (process_terminal + 1) * FOUR_KB  + ((NUM_COLS*screen_y[process_terminal] + screen_x[process_terminal]) << 1) + 1) = ATTRIB;
+        if(process_terminal == currentTerminal) {
+			*(uint8_t *)( video_mem + ((NUM_COLS*screen_y[process_terminal] + screen_x[process_terminal]) << 1)) = c;
+	        *(uint8_t *)( video_mem + ((NUM_COLS*screen_y[process_terminal] + screen_x[process_terminal]) << 1) + 1) = ATTRIB;
+		}
+        screen_x[process_terminal]++;
+        screen_x[process_terminal] %= NUM_COLS;
+		if(screen_x[process_terminal] == 0){	// Need to move down a line
+			screen_y[process_terminal]++;
 		}
     }
-	if(screen_y >= NUM_ROWS){	// Need to shift up
-		text_shift_up();
-		screen_y--;
+	if(screen_y[process_terminal] >= NUM_ROWS){	// Need to shift up
+		text_shift_up(process_terminal);
+		screen_y[process_terminal]--;
 	}
-	set_cursor(screen_x, screen_y);
+
+	if(process_terminal == currentTerminal) {
+		set_cursor(screen_x[process_terminal], screen_y[process_terminal]);
+	}
 }
 
 /*

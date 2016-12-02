@@ -3,6 +3,7 @@
 
 #include "lib.h"
 #include "i8259.h"
+#include "paging.h"
 
 // General Constants used
 #define KB_IRQ 1
@@ -31,20 +32,13 @@
 #define CAPS_OFF 64
 #define SHIFT_OFF 128
 
-// PIDs for different terminals
-#define NUM_TERMINALS 3
-#define TERMINAL_0_PID 0
-#define TERMINAL_1_PID 1
-#define TERMINAL_2_PID 2
+// Different Terminal Numbers
+#define TERMINAL_0 0
+#define TERMINAL_1 1
+#define TERMINAL_2 2
 
-// Variable and function used for switching between terminals
-uint8_t currentTerminal;
-extern int32_t switchTerminal(uint8_t newTerminal);
-
-/*
- * Keyboard buffer array
- */
-char KBbuf [NUM_TERMINALS] [BUF_SIZE];
+// function used for switching between terminals
+extern int32_t switchTerminal(uint8_t previousTerminal);
 
 // Functions used to define the keyboard and terminal
 extern void KBhandler();
