@@ -14,6 +14,7 @@
 #define FOUR_KB 0x00001000
 #define SIZE_PHYSICAL_ADDRESS 20
 #define MAX_NUM_FDT_ENTRIES 8
+#define ARG_SIZE 128
 
 // Structs used
 
@@ -61,7 +62,7 @@ typedef struct __attribute__((packed)) PCB {
 	uint8_t has_child_flag : 1;
 	uint8_t pause_process_flag : 1;
 	uint32_t current_eip;
-	uint8_t arg_ptr[128];
+	uint8_t arg_ptr[ARG_SIZE];
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 

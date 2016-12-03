@@ -340,7 +340,7 @@ int32_t sys_execute (const uint8_t* command){
 	while(command[i] == ' '){
 		i++;
 	}
-	
+
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
 		strncpy((int8_t *) args, (const int8_t *)&command[i], (uint32_t)ARG_SIZE_WITHOUT_NULL_TERMINATOR);
@@ -384,7 +384,7 @@ int32_t sys_execute (const uint8_t* command){
 		PCB_ptrs[pid] -> parent_terminal = PCB_ptrs[PCB_ptrs[pid] -> parent_pid] -> parent_terminal;
 	}
 	PCB_ptrs[pid] -> has_child_flag = 0;
-	
+
 	//We are running a process within a terminal
 	//if(pid > TERMINAL_2) {
 	//	PCB_ptrs[pid] -> parent_pid = cur_pid;

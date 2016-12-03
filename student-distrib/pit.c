@@ -51,12 +51,13 @@ void PIThandler(){
 		sys_execute((uint8_t *)"shell");
 		return;
 	}
-	
-	
-	
+
 	// update cur_pid to reflect the thread switch
 	cur_pid = PIDstore[curThread];
-	
+
+	// Perform context switch
+ 	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - cur_pid * EIGHT_KB) - LONG_BYTES;//update the process's kernel-mode stack pointer
+
 	// Send EOI
 	send_eoi(PIT_IRQ);
 	
@@ -73,7 +74,6 @@ void PIThandler(){
 		:
 		:"r"(EBPstore[curThread])
 		:"memory");
-		
 		
 	//return
 	asm volatile ("leave");
