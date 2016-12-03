@@ -1,8 +1,6 @@
 #include "RTC.h"
 
-volatile int RTC_read_flag = 0;	// Flag used during RTC reading
-volatile int RTC_testing = 0;
-
+volatile int RTC_read_flag[NUM_TERMINALS] = {0, 0, 0}; //Flag for reading if RTC interrupt has been raised
 /* 
  * RTCOpen
  *
@@ -13,6 +11,7 @@ volatile int RTC_testing = 0;
  */
 int32_t RTCOpen(const uint8_t* filename){
 	uint32_t freq = INIT_FREQ;
+	RTC_read_flag[PCB_ptrs[cur_pid] -> parent_terminal]=0;
 	return RTCWrite(0, &freq, 0);	// Default 2Hz
 }
 
@@ -25,9 +24,9 @@ int32_t RTCOpen(const uint8_t* filename){
  * SIDE_EFFECTS: 
  */
 int32_t RTCRead(int32_t fd, void* buf, int32_t nbytes){
-	RTC_read_flag = 1;
-	while(RTC_read_flag)
-		;
+	RTC_read_flag[PCB_ptrs[cur_pid] -> parent_terminal] = 1;
+	while(RTC_read_flag[PCB_ptrs[cur_pid] -> parent_terminal]);
+
 	return 0;
 }
 
@@ -50,9 +49,7 @@ int32_t RTCWrite(int32_t fd, const void* buf, int32_t nbytes){
 			}
 		}
 		if(bitFlag == 1){
-			// Do write to RTC device
-			/*************/
-			
+			// Do write to RTC device	
 			uint8_t rate = 1;
 			uint16_t i;
 			for(i = BASE_FREQ; i>freq; i = (i >> 1)){
@@ -105,7 +102,6 @@ void RTC_init(){
 	outb((prev & HI4) | LOW4, RTC_DATA);
 	
 	outb(inb(RTC_PORT)&(~BIT8), RTC_PORT);	// Enable NMI
-	
 	// Read data from reg C
 	outb(RTC_C, RTC_PORT);
 	inb(RTC_DATA);
@@ -125,9 +121,9 @@ void RTChandler(){
 	
 	outb(RTC_C, RTC_PORT);
 	inb(RTC_DATA);
-	RTC_read_flag = 0;
-	if(RTC_testing)
-		putc('1');
+	int i;
+	for(i=0; i<NUM_THREADS;i++)
+		RTC_read_flag[i]=0;
 	send_eoi(RTC_IRQ);
 	
 	// restore general purpose register, return	
@@ -136,10 +132,4 @@ void RTChandler(){
 	asm volatile ("iret");
 }
 
-void startRTCTest(){
-	RTC_testing = 1;
-}
 
-void stopRTCTest(){
-	RTC_testing = 0;
-}

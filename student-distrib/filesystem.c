@@ -1,6 +1,5 @@
 #include "filesystem.h"
 
-
 /* 
  * strlenFile
  *
@@ -20,7 +19,6 @@ strlenFile(const int8_t* s, uint32_t maxStrLen)
 
 	return len;
 }
-
 
 /* 
  * strcpyFile
@@ -46,8 +44,6 @@ strcpyFile(int8_t* dest, const int8_t* src, uint32_t maxStrLen)
 
 	return bytesCopied;
 }
-
-
 
 /* 
  * read_dentry_by_name
@@ -79,7 +75,6 @@ int32_t read_dentry_by_name (const uint8_t* fname, dentry_t* dentry)
 	return ERROR_VAL;
 }
 
-
 /* 
  * read_dentry_by_name
  *
@@ -105,7 +100,6 @@ int32_t read_dentry_by_index (uint32_t index, dentry_t* dentry)
 	}
 	
 }
-
 
 /* 
  * read_data

@@ -1,5 +1,35 @@
 #include "systemcall.h"
 
+
+int32_t switchTerminal(uint8_t previousTerminal) {
+	//Make sure we have valid new terminal index 
+	if(previousTerminal > TERMINAL_2 || currentTerminal > TERMINAL_2) {
+		return ERROR_VAL;
+	}
+
+
+	unsigned int flags;
+	cli_and_save(flags);
+	
+	//Save current terminal output to respective terminal memory
+	memcpy((char *) (VIDEO + (previousTerminal + 1) * FOUR_KB), (const char *)VIDEO, FOUR_KB);
+
+	//Move new terminal memory to display memory
+	memcpy((char *)VIDEO, (const char *) (VIDEO + (currentTerminal + 1) * FOUR_KB), FOUR_KB);
+
+	//Set location for cursors in new terminal
+	set_cursor(screen_x[currentTerminal], screen_y[currentTerminal]);
+	
+	//Update the physical addresses that the different terminal video pages correspond to
+	user_page_table[USER_VIDEO_MEM_INDEX + previousTerminal].physical_address = (VIDEO_4KB_ALIGNED_ADDRESS +  (previousTerminal + 1) * FOUR_KB) >> PDE_PTE_ADDRESS_SHIFT;
+	user_page_table[USER_VIDEO_MEM_INDEX + currentTerminal].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+
+	clearTLB();
+	restore_flags(flags);
+
+	return 0;
+}
+
 /* 
  * fileRead
  *
@@ -122,8 +152,9 @@ void initialize_PCB_pointers() {
  * SIDE_EFFECTS: Initialize each entry in the fdt for each process
  */
 void initialize_FDT(int32_t pid) {
-	int index;
+	int index;	
 	fdt = PCB_ptrs[pid]->process_fdt;
+
 
 	//Initialize all fdt entries
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
@@ -152,8 +183,9 @@ void initialize_FDT(int32_t pid) {
  * SIDE_EFFECTS: End current process and setup for parent process
  */
 int32_t sys_halt (uint8_t status) {
-	uint32_t parents_pid;
-	eax_val = (uint32_t) status + (uint32_t) PCB_ptrs[cur_pid]->exception_flag; // RET VAL
+	uint32_t parents_pid, current_pid;
+	current_pid = cur_pid;
+	eax_val = (uint32_t) status + (uint32_t) PCB_ptrs[current_pid]->exception_flag; // RET VAL
 	int32_t index;
 	uint32_t register_val_esp, register_val_ebp;
 
@@ -168,9 +200,11 @@ int32_t sys_halt (uint8_t status) {
 		:
 		:"memory");
 
+	fdt = PCB_ptrs[current_pid]->process_fdt;
+
 	//Identify parent pid
-	parents_pid = PCB_ptrs[cur_pid] -> parent_pid;
-	
+	parents_pid = PCB_ptrs[current_pid] -> parent_pid;
+
 	//Close all relevant FD
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
 		if(fdt[index].flags != UNUSED_FLAG) {
@@ -181,26 +215,27 @@ int32_t sys_halt (uint8_t status) {
 	//We are ending highest level process
 	if(parents_pid == -1) {
 		// Restart shell
-		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
-		cur_pid = -1;
+		PCB_ptrs[current_pid] = NULL; //we no longer need the PCB for the current process
+		current_pid = -1;
 		sys_execute((uint8_t *)"shell");
 	}
 
 	//We are ending a child process
 	else{
 		//Restore parent EBP and ESP
-		register_val_esp = PCB_ptrs[cur_pid] -> esp;
-		register_val_ebp = PCB_ptrs[cur_pid] -> ebp;
+		register_val_esp = PCB_ptrs[current_pid] -> esp;
+		register_val_ebp = PCB_ptrs[current_pid] -> ebp;
 
 		// restore parent process info
 		page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[parents_pid] -> pde; //Restore paging for parent process
 		clearTLB();
 		fdt = PCB_ptrs[parents_pid] -> process_fdt; //Update global fdt pointer
-		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
+		PCB_ptrs[current_pid] = NULL; //we no longer need the PCB for the current process
+
 		cur_pid = parents_pid;
 
 		// Update TSS stack pointer to parent stack pointer
- 		tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - cur_pid * EIGHT_KB) - 4;
+ 		tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - parents_pid * EIGHT_KB) - LONG_BYTES;
 	}
 
 	
@@ -231,8 +266,6 @@ int32_t sys_halt (uint8_t status) {
  * SIDE_EFFECTS: Sets up page directory for program, user space (vidmap)
  */
 static void init_process_paging(int pid) {
-	int i;
-
 	//Initialize paging for the process image (corresponds to virtual address 128 MB)
 	page_directory[PROCESS_PAGING_INDEX].page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
 	page_directory[PROCESS_PAGING_INDEX].open_bits = 0;
@@ -245,42 +278,6 @@ static void init_process_paging(int pid) {
 	page_directory[PROCESS_PAGING_INDEX].user_supervisor = 1;
 	page_directory[PROCESS_PAGING_INDEX].read_write_permissions = 1;
 	page_directory[PROCESS_PAGING_INDEX].present = 1;
-
-
-	/* Determine a new virtual address for user to access vidmap data
-		We arbitrarily choose the virtual address of 512 MB for vidmap.
-		We check to make sure the page is not used, and then set up the PTE */
-
-	/* Check to make sure that the page isn't already used */
-	page_directory[USER_PAGE_TABLE_INDEX].page_table_address = ((uint32_t) user_page_table) >> PDE_PTE_ADDRESS_SHIFT;
-	page_directory[USER_PAGE_TABLE_INDEX].open_bits = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_1 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].page_size	= 0;
-	page_directory[USER_PAGE_TABLE_INDEX].reserved_2 = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].accessed = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].cache_disable = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].write_through = 0;
-	page_directory[USER_PAGE_TABLE_INDEX].user_supervisor = 1;
-	page_directory[USER_PAGE_TABLE_INDEX].read_write_permissions = 1; 
-	page_directory[USER_PAGE_TABLE_INDEX].present = 1;
-
-	/* Initialize all the user page table entries to unused  */
-	for(i=0; i< NUM_PAGES_IN_TABLE; i++) {
-		user_page_table[i].present = 0;
-	}
-
-	/* initialize the page in the user page table for a video memory entry */
-	user_page_table[USER_VIDEO_MEM_INDEX].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
-	user_page_table[USER_VIDEO_MEM_INDEX].open_bits = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].global = 1;
-	user_page_table[USER_VIDEO_MEM_INDEX].reserved_1 = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].dirty	= 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].accessed = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].cache_disable = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].write_through = 0;
-	user_page_table[USER_VIDEO_MEM_INDEX].user_supervisor = 1; 
-	user_page_table[USER_VIDEO_MEM_INDEX].read_write_permissions = 1;
-	user_page_table[USER_VIDEO_MEM_INDEX].present = 1;
 
 	//Flush the TLB for each new program
 	clearTLB();
@@ -328,11 +325,10 @@ int32_t sys_execute (const uint8_t* command){
 	}
 	
 	// Ignore spaces between name and args
-	//i=0;
 	while(command[i] == ' '){
 		i++;
 	}
-	
+
 	// If there are args, set the args ptr to be used later in the PCB
 	if(command[i] != '\0'){
 		strncpy((int8_t *) args, (const int8_t *)&command[i], (uint32_t)ARG_SIZE_WITHOUT_NULL_TERMINATOR);
@@ -367,12 +363,21 @@ int32_t sys_execute (const uint8_t* command){
 	//Start populating PCB data
 	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
+
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
+	if(PCB_ptrs[pid] -> parent_pid == -1){
+		PCB_ptrs[pid] -> parent_terminal = curThread;
+	}else{
+		PCB_ptrs[pid] -> parent_terminal = PCB_ptrs[PCB_ptrs[pid] -> parent_pid] -> parent_terminal;
+	}
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
+
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
 	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, ARG_SIZE);
-	//PCB_ptrs[pid] -> arg_ptr = args;
+
+
+
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
 	//Perform loading procedure
@@ -516,8 +521,6 @@ int32_t sys_open (const uint8_t* filename){
 		//update the file position
 		fdt[index].file_position =0;
 
-		//Mark as used
-
 		//Call the respective open function
 		switch(filetype) {
 			case RTC_DEVICE_FILETYPE:
@@ -607,9 +610,14 @@ int32_t sys_vidmap (uint8_t** screen_start){
 		return ERROR_VAL;
 	}
 
+	//Make sure paging is enabled for screen_start address
+	if((uint32_t) screen_start < ONE_HUNDRED_TWENTY_EIGHT_MB || (uint32_t) screen_start >= ONE_HUNDRED_THIRTY_TWO_MB) {
+		return ERROR_VAL;
+	}
+
 	//Save our new address back into the user space
-	uint32_t new_address = USER_VIDMAP_ADDR;
-	(*screen_start) = (uint8_t*) new_address;
+	uint32_t new_address = USER_VIDMAP_ADDR + (PCB_ptrs[cur_pid] -> parent_terminal) * FOUR_KB;
+	(*screen_start) = (uint8_t*) new_address;	
 
 	return 0;
 }

@@ -5,11 +5,76 @@
 #ifndef _LIB_H
 #define _LIB_H
 
-#define ERROR_VAL -1
-
 #include "types.h"
 
+#define ERROR_VAL -1
+#define VIDEO 0xB8000
+#define NUM_TERMINALS 3
+#define MAX_PROCESSES 6
+#define FOUR_KB 0x00001000
+#define SIZE_PHYSICAL_ADDRESS 20
+#define MAX_NUM_FDT_ENTRIES 8
+#define ARG_SIZE 128
+#define NUM_THREADS 3
+
+// Structs used
+typedef union pde_desc_t {
+	uint32_t val;
+	struct {
+		uint8_t present: 1;
+		uint8_t read_write_permissions: 1;
+		uint8_t user_supervisor: 1;
+		uint8_t write_through: 1;
+		uint8_t cache_disable: 1;
+		uint8_t accessed: 1;
+		uint8_t reserved_2: 1;
+		uint8_t page_size: 1;
+		uint8_t reserved_1: 1;
+		uint8_t open_bits: 3;
+		uint32_t page_table_address: SIZE_PHYSICAL_ADDRESS;
+	} __attribute__((packed));
+} pde_desc_t;
+
+typedef	struct __attribute__((packed)) fops_table
+{
+	int32_t (*open)(const uint8_t*);
+	int32_t (*close)(int32_t);
+	int32_t (*read)(int32_t, void*, int32_t);
+	int32_t (*write)(int32_t, const void*, int32_t);
+} fops_table_t;
+
+typedef struct __attribute__((packed)) file_descriptor_entry
+{
+	fops_table_t * fops_pointer;
+	uint32_t inodeNum;
+	int32_t file_position;
+	uint32_t flags;
+} file_descriptor_entry_t;
+
+typedef struct __attribute__((packed)) PCB {
+	int32_t pid;
+	int32_t parent_pid;
+	pde_desc_t pde;
+	uint32_t esp;
+	uint32_t ebp;
+	uint8_t exception_flag : 1;
+	uint8_t parent_terminal;
+	uint8_t arg_ptr[ARG_SIZE];
+	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
+} PCB_t; 
+
+// Thread handling
+volatile int curThread;
+
+//Process Handling
+PCB_t* PCB_ptrs[MAX_PROCESSES];
+volatile int cur_pid;
+volatile uint8_t currentTerminal;
+int screen_x[NUM_TERMINALS];
+int screen_y[NUM_TERMINALS];
+
 int32_t printf(int8_t *format, ...);
+void KBputc(uint8_t c);
 void putc(uint8_t c);
 int32_t puts(int8_t *s);
 int8_t *itoa(uint32_t value, int8_t* buf, int32_t radix);
@@ -18,7 +83,7 @@ uint32_t strlen(const int8_t* s);
 void clear(void);
 
 void set_cursor(int x, int y);
-void text_shift_up();
+void text_shift_up(int terminalNum);
 void erase_char();
 void back_char();
 

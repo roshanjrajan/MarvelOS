@@ -73,8 +73,4 @@ extern void testDirRead();
 extern void testFileRead(uint8_t * fname);
 extern void testFileIndex(uint32_t index);
 
-extern int cur_pid;
-
-#include "systemcall.h"
-
 #endif

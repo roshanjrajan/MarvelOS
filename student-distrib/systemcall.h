@@ -7,6 +7,7 @@
 #include "RTC.h"
 #include "types.h"
 #include "paging.h"
+#include "lib.h"
 
 // General Constants
 #define RTC_DEVICE_FILETYPE 0
@@ -14,19 +15,18 @@
 #define REGULAR_FILE_FILETYPE 2
 #define STDIN_INDEX_IN_FDT 0
 #define STDOUT_INDEX_IN_FDT 1
-#define MAX_PROCESSES 2
-#define MAX_NUM_FDT_ENTRIES 8
 #define EXECUTABLE_CHECK_BUFFER_SIZE 4
 #define EIGHT_MB 0x00800000
 #define FOUR_MB 0x00400000
 #define EIGHT_KB 0x00002000
 #define FIVE_HUNDRED_TWELVE_MB EIGHT_MB * 64
+#define ONE_HUNDRED_TWENTY_EIGHT_MB FIVE_HUNDRED_TWELVE_MB/ 4
+#define ONE_HUNDRED_THIRTY_TWO_MB ONE_HUNDRED_TWENTY_EIGHT_MB + FOUR_MB
 #define PROGRAM_INIT_VIRTUAL_ADDR 0x08048000
 #define PROCESS_PAGING_INDEX 32 // (128 MB / 4 MB) = 32 (indexing starts at 0)
 #define USER_VIDMAP_ADDR FIVE_HUNDRED_TWELVE_MB
 #define PROCESS_BASE_4KB_ALIGNED_ADDRESS EIGHT_MB
 #define FNAME_SIZE 32
-#define ARG_SIZE 128
 #define ARG_SIZE_WITHOUT_NULL_TERMINATOR 127
 #define ARG_NULL_TERMINATOR_INDEX 127
 #define FIRST_BYTE 0
@@ -80,39 +80,8 @@ int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes);
 int32_t dummy_open (const uint8_t* filename);
 int32_t dummy_close (int32_t fd);
 
-
-// Structs used
-typedef	struct __attribute__((packed)) fops_table
-{
-	int32_t (*open)(const uint8_t*);
-	int32_t (*close)(int32_t);
-	int32_t (*read)(int32_t, void*, int32_t);
-	int32_t (*write)(int32_t, const void*, int32_t);
-} fops_table_t;
-
-typedef struct __attribute__((packed)) file_descriptor_entry
-{
-	fops_table_t * fops_pointer;
-	uint32_t inodeNum;
-	int32_t file_position;
-	uint32_t flags;
-} file_descriptor_entry_t;
-
-typedef struct __attribute__((packed)) PCB {
-	int32_t pid;
-	int32_t parent_pid;
-	pde_desc_t pde;
-	uint32_t esp;
-	uint32_t ebp;
-	uint8_t exception_flag : 1;
-	uint8_t arg_ptr[128];
-	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
-} PCB_t; 
-
 // Global variables used
-PCB_t* PCB_ptrs[MAX_PROCESSES];
 file_descriptor_entry_t * fdt;
-int cur_pid;
 uint32_t eax_val;
 
 //Here are our fops tables
