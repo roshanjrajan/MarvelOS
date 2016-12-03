@@ -7,6 +7,10 @@ int32_t switchTerminal(uint8_t previousTerminal) {
 		return ERROR_VAL;
 	}
 
+
+	unsigned int flags;
+	cli_and_save(flags);
+	
 	//Save current terminal output to respective terminal memory
 	memcpy((char *) (VIDEO + (previousTerminal + 1) * FOUR_KB), (const char *)VIDEO, FOUR_KB);
 
@@ -15,31 +19,14 @@ int32_t switchTerminal(uint8_t previousTerminal) {
 
 	//Set location for cursors in new terminal
 	set_cursor(screen_x[currentTerminal], screen_y[currentTerminal]);
-
+	
 	//Update the physical addresses that the different terminal video pages correspond to
-	unsigned int flags;
-	cli_and_save(flags);
 	user_page_table[USER_VIDEO_MEM_INDEX + previousTerminal].physical_address = (VIDEO_4KB_ALIGNED_ADDRESS +  (previousTerminal + 1) * FOUR_KB) >> PDE_PTE_ADDRESS_SHIFT;
 	user_page_table[USER_VIDEO_MEM_INDEX + currentTerminal].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+
 	clearTLB();
 	restore_flags(flags);
-	//KBputc((char) currentTerminal);
 
-
-////////////////////////////////////////
-	//**************************TODO: Modify execute so that first 3 pids are for sure terminal processes 
-
-	//pause the current process	
-	//PCB_ptrs[cur_pid] -> pause_process_flag = 1;
-
-	//save current eip	
-	//uint32_t cur_eip = get_eip();
-	//PCB_ptrs[cur_pid] -> current_eip = cur_eip;
-
-	//New terminal has been launched before, and already has a child, so launch child
-	//New terminal has been launched before, but doesn't have a child, so resume terminal
-
-///////////////////////////////////////////
 	return 0;
 }
 
@@ -165,8 +152,9 @@ void initialize_PCB_pointers() {
  * SIDE_EFFECTS: Initialize each entry in the fdt for each process
  */
 void initialize_FDT(int32_t pid) {
-	int index;
+	int index;	
 	fdt = PCB_ptrs[pid]->process_fdt;
+
 
 	//Initialize all fdt entries
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
@@ -195,8 +183,9 @@ void initialize_FDT(int32_t pid) {
  * SIDE_EFFECTS: End current process and setup for parent process
  */
 int32_t sys_halt (uint8_t status) {
-	uint32_t parents_pid;
-	eax_val = (uint32_t) status + (uint32_t) PCB_ptrs[cur_pid]->exception_flag; // RET VAL
+	uint32_t parents_pid, current_pid;
+	current_pid = cur_pid;
+	eax_val = (uint32_t) status + (uint32_t) PCB_ptrs[current_pid]->exception_flag; // RET VAL
 	int32_t index;
 	uint32_t register_val_esp, register_val_ebp;
 
@@ -211,9 +200,11 @@ int32_t sys_halt (uint8_t status) {
 		:
 		:"memory");
 
+	fdt = PCB_ptrs[current_pid]->process_fdt;
+
 	//Identify parent pid
-	parents_pid = PCB_ptrs[cur_pid] -> parent_pid;
-	
+	parents_pid = PCB_ptrs[current_pid] -> parent_pid;
+
 	//Close all relevant FD
 	for(index = 0; index < MAX_NUM_FDT_ENTRIES; index ++) {
 		if(fdt[index].flags != UNUSED_FLAG) {
@@ -224,26 +215,27 @@ int32_t sys_halt (uint8_t status) {
 	//We are ending highest level process
 	if(parents_pid == -1) {
 		// Restart shell
-		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
-		cur_pid = -1;
+		PCB_ptrs[current_pid] = NULL; //we no longer need the PCB for the current process
+		current_pid = -1;
 		sys_execute((uint8_t *)"shell");
 	}
 
 	//We are ending a child process
 	else{
 		//Restore parent EBP and ESP
-		register_val_esp = PCB_ptrs[cur_pid] -> esp;
-		register_val_ebp = PCB_ptrs[cur_pid] -> ebp;
+		register_val_esp = PCB_ptrs[current_pid] -> esp;
+		register_val_ebp = PCB_ptrs[current_pid] -> ebp;
 
 		// restore parent process info
 		page_directory[PROCESS_PAGING_INDEX] = PCB_ptrs[parents_pid] -> pde; //Restore paging for parent process
 		clearTLB();
 		fdt = PCB_ptrs[parents_pid] -> process_fdt; //Update global fdt pointer
-		PCB_ptrs[cur_pid] = NULL; //we no longer need the PCB for the current process
+		PCB_ptrs[current_pid] = NULL; //we no longer need the PCB for the current process
+
 		cur_pid = parents_pid;
 
 		// Update TSS stack pointer to parent stack pointer
- 		tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - cur_pid * EIGHT_KB) - 4;
+ 		tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - parents_pid * EIGHT_KB) - LONG_BYTES;
 	}
 
 	
@@ -314,9 +306,6 @@ int32_t sys_execute (const uint8_t* command){
 	while(pid < MAX_PROCESSES && PCB_ptrs[pid] != NULL) {
 		pid++;
 	}
-
-	//if(pid<3 && pid!=0)
-	//	pid=3;
 	
 	//Check if we are already running the maximum number of processes
 	if(pid == MAX_PROCESSES){
@@ -336,7 +325,6 @@ int32_t sys_execute (const uint8_t* command){
 	}
 	
 	// Ignore spaces between name and args
-	//i=0;
 	while(command[i] == ' '){
 		i++;
 	}
@@ -376,38 +364,19 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
 
-	
 	PCB_ptrs[pid] -> parent_pid = cur_pid;
 	if(PCB_ptrs[pid] -> parent_pid == -1){
 		PCB_ptrs[pid] -> parent_terminal = curThread;
 	}else{
 		PCB_ptrs[pid] -> parent_terminal = PCB_ptrs[PCB_ptrs[pid] -> parent_pid] -> parent_terminal;
 	}
-	PCB_ptrs[pid] -> has_child_flag = 0;
-
-	//We are running a process within a terminal
-	//if(pid > TERMINAL_2) {
-	//	PCB_ptrs[pid] -> parent_pid = cur_pid;
-	//	PCB_ptrs[pid] -> parent_terminal = currentTerminal;
-	//	PCB_ptrs[currentTerminal] -> has_child_flag = 1;
-	//}
-	//We are running the first shell on a new terminal
-	//else{
-	//	PCB_ptrs[pid] -> parent_pid = cur_pid;
-	//	PCB_ptrs[pid] -> parent_terminal = PCB_ptrs[PCB_ptrs[pid] -> parent_pid] -> parent_terminal;
-	//	PCB_ptrs[pid] -> has_child_flag = 0;
-	//}
-
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
-	PCB_ptrs[pid] -> pause_process_flag = 0;
-
-	//save current eip	
-	//uint32_t cur_eip = get_eip();
-	//PCB_ptrs[cur_pid] -> current_eip = cur_eip;
 
 	PCB_ptrs[pid] -> pde = page_directory[PROCESS_PAGING_INDEX];
 	strncpy((int8_t *) PCB_ptrs[pid] -> arg_ptr, (const int8_t *) args, ARG_SIZE);
+
+
 
 	initialize_FDT(pid); //This will populate the corresponding process_fdt field of PCB_ptrs[pid]
 
@@ -551,8 +520,6 @@ int32_t sys_open (const uint8_t* filename){
 		
 		//update the file position
 		fdt[index].file_position =0;
-
-		//Mark as used
 
 		//Call the respective open function
 		switch(filetype) {

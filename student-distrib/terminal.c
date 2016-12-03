@@ -246,9 +246,12 @@ extern int32_t terminalRead(int32_t fd, void* buf, int32_t nbytes){
 	while(!readReady[PCB_ptrs[cur_pid] -> parent_terminal]){
 		;
 	}
+
 	int bytes;
 	int flags;
+
 	cli_and_save(flags);
+	
 	for(bytes = 0; bytes<nbytes; bytes++){
 		((char *)buf)[bytes] = KBbuf[PCB_ptrs[cur_pid] -> parent_terminal][bytes];
 		if(((char *)buf)[bytes] == '\n'){

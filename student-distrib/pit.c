@@ -1,10 +1,21 @@
 #include "pit.h"
 
-void PIThandler(){
+
+void PITwrapper(){
 	// As interrupt, save all general purpose registers
 	asm volatile ("pusha");
 	
-	
+	PIThandler();
+
+	// restore general purpose registers	
+	asm volatile ("popa");
+
+	asm volatile ("leave");
+	asm volatile ("iret");
+}
+
+
+void PIThandler(){
 	
 	// Chck if shell has been started for current thread yet and take appropriate action
 	if(shellStarted[curThread] == 0){
@@ -55,15 +66,21 @@ void PIThandler(){
 	// update cur_pid to reflect the thread switch
 	cur_pid = PIDstore[curThread];
 
+	//Update our global fdt pointer
+	fdt = PCB_ptrs[cur_pid]->process_fdt;
+
+	//Update the physical address for the program
+	page_directory[PROCESS_PAGING_INDEX].page_table_address = (PROCESS_BASE_4KB_ALIGNED_ADDRESS + cur_pid * FOUR_MB)>> PDE_PTE_ADDRESS_SHIFT;
+	
+	//Flush the TLB for the new program
+	clearTLB();
+
 	// Perform context switch
  	tss.esp0 = (PROCESS_BASE_4KB_ALIGNED_ADDRESS - cur_pid * EIGHT_KB) - LONG_BYTES;//update the process's kernel-mode stack pointer
 
 	// Send EOI
 	send_eoi(PIT_IRQ);
-	
-	// restore general purpose registers	
-	asm volatile ("popa");
-	
+		
 	// Populate ESP/EBP with values for task to switch to
 	asm("movl %0, %%esp;"
 		:
@@ -75,9 +92,7 @@ void PIThandler(){
 		:"r"(EBPstore[curThread])
 		:"memory");
 		
-	//return
-	asm volatile ("leave");
-	asm volatile ("iret");
+	return;
 }
 
 void PITinit(){

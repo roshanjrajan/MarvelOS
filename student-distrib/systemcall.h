@@ -55,7 +55,6 @@
 extern void switch_to_user_mode(uint32_t starting_addr);
 extern void initialize_FDT(int32_t pid);
 extern void initialize_PCB_pointers();
-extern uint32_t get_eip();
 int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
 int32_t directoryOpen(const uint8_t* filename);
 void initialize_fops();
@@ -82,9 +81,7 @@ int32_t dummy_open (const uint8_t* filename);
 int32_t dummy_close (int32_t fd);
 
 // Global variables used
-//PCB_t* PCB_ptrs[MAX_PROCESSES];
 file_descriptor_entry_t * fdt;
-//int cur_pid;
 uint32_t eax_val;
 
 //Here are our fops tables

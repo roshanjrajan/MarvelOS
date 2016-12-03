@@ -200,17 +200,16 @@ entry (unsigned long magic, unsigned long addr)
 	// Open the terminal for all stdin/stdout
 	terminalOpen((uint8_t *) "");
 
-	//PIThandler();
-	
-	/* Execute the first program (`shell') ... */
-	//cur_pid = -1;
-	//sys_execute((uint8_t *)"shell");
-
 	/* Spin (nicely, so we don't chew up cycles) */
 	asm volatile(".1: hlt; jmp .1;");
 }
 
 
+	//PIThandler();
+	
+	/* Execute the first program (`shell') ... */
+	//cur_pid = -1;
+	//sys_execute((uint8_t *)"shell");
 	
 	
 	// // TESTING Mp3 Checkpoint 2
