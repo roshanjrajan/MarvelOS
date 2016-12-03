@@ -1,0 +1,36 @@
+3.1 
+Initialzing Paging
+	- Incorrect value for bit shift
+	- Incorrect memory address value inputted into CR0 for enable paging
+	
+3.2 
+Unable to open the very large text file
+	- Invalid filename trying to be read from dentries in boot block	
+	
+Invalid File Reads
+	- Offset into file initilized incorrectly - updated to find correct data block
+	  and offset into data block
+	
+3.3 
+Changing EBP value
+	- Changing the ebp register resulted in an incorrect read of the return value
+	stored on the stack. Needed to update the return value and eax register before 
+	updating ebp to ensure correct return value.
+
+3.4
+Offset for File Read
+	- Not fully utilizing the offset in the file read - issue was in expected
+	copy length for file. Also update for using the fdt entries for each file.
+Setup Directory Read
+	- Invalid implementation of ls. Updated for system call ls and utilizing fdt
+	entries for directory.
+Index for System Calls
+	- Updated the correct number for sys calls - first system call at 1 not at 0.
+Needed to check Vidmap
+	- Incorrect memory address saved into *screen start - needed to update to ensure
+	that outside of kernel space but within user space.
+
+3.5
+
+	
+	
