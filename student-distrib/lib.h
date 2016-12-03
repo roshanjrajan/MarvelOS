@@ -65,6 +65,9 @@ typedef struct __attribute__((packed)) PCB {
 	file_descriptor_entry_t process_fdt[MAX_NUM_FDT_ENTRIES];
 } PCB_t; 
 
+// Thread handling
+int curThread;
+
 //Process Handling
 PCB_t* PCB_ptrs[MAX_PROCESSES];
 int cur_pid;

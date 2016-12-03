@@ -171,7 +171,11 @@ entry (unsigned long magic, unsigned long addr)
 	
 	// Enable RTC chip stuff
 	RTC_init();
+	
+	// Prep for scheduler/PIT and enable PIT chip stuff
+	PITinit();
 
+	enable_irq(PIT_IRQ);		//enable PIT interrupts
 	enable_irq(KB_IRQ);	    	//enable Keyboard interrrupts
 	enable_irq(SLAVE_IRQ);  	//enable interrupts from slave PIC
 	enable_irq(RTC_IRQ);		//enable RTC interrupts
@@ -196,8 +200,11 @@ entry (unsigned long magic, unsigned long addr)
 	// Open the terminal for all stdin/stdout
 	terminalOpen((uint8_t *) "");
 
+	//PIThandler();
+	
 	/* Execute the first program (`shell') ... */
-	sys_execute((uint8_t *)"shell");
+	//cur_pid = -1;
+	//sys_execute((uint8_t *)"shell");
 
 	/* Spin (nicely, so we don't chew up cycles) */
 	asm volatile(".1: hlt; jmp .1;");

@@ -21,8 +21,9 @@ int32_t switchTerminal(uint8_t previousTerminal) {
 	cli_and_save(flags);
 	user_page_table[USER_VIDEO_MEM_INDEX + previousTerminal].physical_address = (VIDEO_4KB_ALIGNED_ADDRESS +  (previousTerminal + 1) * FOUR_KB) >> PDE_PTE_ADDRESS_SHIFT;
 	user_page_table[USER_VIDEO_MEM_INDEX + currentTerminal].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
+	clearTLB();
 	restore_flags(flags);
-	KBputc((char) currentTerminal);
+	//KBputc((char) currentTerminal);
 
 
 ////////////////////////////////////////
@@ -314,8 +315,8 @@ int32_t sys_execute (const uint8_t* command){
 		pid++;
 	}
 
-	if(pid<3 && pid!=0)
-		pid=3;
+	//if(pid<3 && pid!=0)
+	//	pid=3;
 	
 	//Check if we are already running the maximum number of processes
 	if(pid == MAX_PROCESSES){
@@ -375,18 +376,27 @@ int32_t sys_execute (const uint8_t* command){
 	PCB_ptrs[pid] = (PCB_t *) (EIGHT_MB - ((pid + 1) * EIGHT_KB));	//Making space at top of process's kernel stack
 	PCB_ptrs[pid] -> pid = pid;
 
+	
+	PCB_ptrs[pid] -> parent_pid = cur_pid;
+	if(PCB_ptrs[pid] -> parent_pid == -1){
+		PCB_ptrs[pid] -> parent_terminal = curThread;
+	}else{
+		PCB_ptrs[pid] -> parent_terminal = PCB_ptrs[PCB_ptrs[pid] -> parent_pid] -> parent_terminal;
+	}
+	PCB_ptrs[pid] -> has_child_flag = 0;
+	
 	//We are running a process within a terminal
-	if(pid > TERMINAL_2) {
-		PCB_ptrs[pid] -> parent_pid = cur_pid;
-		PCB_ptrs[pid] -> parent_terminal = currentTerminal;
-		PCB_ptrs[currentTerminal] -> has_child_flag = 1;
-	}
+	//if(pid > TERMINAL_2) {
+	//	PCB_ptrs[pid] -> parent_pid = cur_pid;
+	//	PCB_ptrs[pid] -> parent_terminal = currentTerminal;
+	//	PCB_ptrs[currentTerminal] -> has_child_flag = 1;
+	//}
 	//We are running the first shell on a new terminal
-	else{
-		PCB_ptrs[pid] -> parent_pid = -1;
-		PCB_ptrs[pid] -> parent_terminal = pid;
-		PCB_ptrs[pid] -> has_child_flag = 0;
-	}
+	//else{
+	//	PCB_ptrs[pid] -> parent_pid = cur_pid;
+	//	PCB_ptrs[pid] -> parent_terminal = PCB_ptrs[PCB_ptrs[pid] -> parent_pid] -> parent_terminal;
+	//	PCB_ptrs[pid] -> has_child_flag = 0;
+	//}
 
 	cur_pid = pid;
 	PCB_ptrs[pid] -> exception_flag = 0;
