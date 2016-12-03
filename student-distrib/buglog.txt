@@ -21,16 +21,29 @@ Changing EBP value
 Offset for File Read
 	- Not fully utilizing the offset in the file read - issue was in expected
 	copy length for file. Also update for using the fdt entries for each file.
+
 Setup Directory Read
 	- Invalid implementation of ls. Updated for system call ls and utilizing fdt
 	entries for directory.
+
 Index for System Calls
 	- Updated the correct number for sys calls - first system call at 1 not at 0.
+
 Needed to check Vidmap
 	- Incorrect memory address saved into *screen start - needed to update to ensure
 	that outside of kernel space but within user space.
 
 3.5
+Fast Pingpong/Fish
+	- Speed of pingpong/fish would change when a file other than pingpong/fish
+	would be executed.
 
-	
+Page Fault when running simultaneous programs
+	- Not updating user page holding current user program to ensure that 
+	terminal is running the current user program. 
+	- Also needed to update the current user stack for each program
+
+Updating Terminals when Switching
+	- Unaccoutning for the current page for each terminal when switching between
+	terminals to correctly store video memory for each terminal
 	
