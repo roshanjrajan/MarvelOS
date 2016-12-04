@@ -12,7 +12,7 @@
 uint32_t ESPstore[NUM_THREADS];
 uint32_t EBPstore[NUM_THREADS];
 uint32_t PIDstore[NUM_THREADS];
-uint32_t shellStarted[NUM_THREADS];	// 1 = started, 0 = not started
+
 
 void PITwrapper();
 void PIThandler();

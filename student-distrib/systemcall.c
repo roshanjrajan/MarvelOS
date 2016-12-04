@@ -216,8 +216,8 @@ int32_t sys_halt (uint8_t status) {
 	if(parents_pid == -1) {
 		// Restart shell
 		PCB_ptrs[current_pid] = NULL; //we no longer need the PCB for the current process
-		current_pid = -1;
-		sys_execute((uint8_t *)"shell");
+		shellStarted[curThread] = 0;
+		while(1); //Wait for scheduler to execute shell in its place
 	}
 
 	//We are ending a child process
