@@ -74,6 +74,9 @@ extern int32_t sys_vidmap (uint8_t** screen_start);
 extern int32_t sys_sethandler (int32_t signum, void* handler_address);
 extern int32_t sys_sigreturn (void);
 
+
+uint32_t shellStarted[NUM_THREADS];	// 1 = started, 0 = not started
+
 //dummy functions
 int32_t dummy_read (int32_t fd, void* buf, int32_t nbytes);
 int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes);
