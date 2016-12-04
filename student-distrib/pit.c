@@ -124,11 +124,11 @@ void PITinit(){
 	curThread = 0;
 
 	// Set up PIT device to actually generate interrupts
-	outb(0x34, 0x43);
+	outb(PIT_MODE_SET, PIT_MODE_REG);
 	
-	uint32_t pit_val = 1193182/PIT_RATE;
-	outb(pit_val & 0xff, 0x40);
-	outb(pit_val >> 8, 0x40);
+	uint32_t pit_val = PIT_BASE_RATE/PIT_RATE;
+	outb(pit_val & LOW_8, PIT_DATA_REG);
+	outb(pit_val >> BITS_8, PIT_DATA_REG);
 	
 	return;
 }

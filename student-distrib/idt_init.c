@@ -9,7 +9,7 @@
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh0(){
-	printf("EXCEPTION: DIVIDE ERROR");
+	printf("EXCEPTION: DIVIDE ERROR\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -23,7 +23,7 @@ void eh0(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh2(){
-	printf("EXCEPTION: NMI INTERRUPT");
+	printf("EXCEPTION: NMI INTERRUPT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -37,7 +37,7 @@ void eh2(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh3(){
-	printf("EXCEPTION: BREAKPOINT");
+	printf("EXCEPTION: BREAKPOINT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -51,7 +51,7 @@ void eh3(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh4(){
-	printf("EXCEPTION: OVERFLOW");
+	printf("EXCEPTION: OVERFLOW\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -65,7 +65,7 @@ void eh4(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh5(){
-	printf("EXCEPTION: BOUND RANGE EXCEEDED");
+	printf("EXCEPTION: BOUND RANGE EXCEEDED\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -79,7 +79,7 @@ void eh5(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh6(){
-	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE");
+	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -93,7 +93,7 @@ void eh6(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh7(){
-	printf("EXCEPTION: DEVICE NOT AVAILABLE");
+	printf("EXCEPTION: DEVICE NOT AVAILABLE\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -107,7 +107,7 @@ void eh7(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh8(){
-	printf("EXCEPTION: DOUBLE FAULT");
+	printf("EXCEPTION: DOUBLE FAULT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -121,7 +121,7 @@ void eh8(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh9(){
-	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN");
+	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -135,7 +135,7 @@ void eh9(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh10(){
-	printf("EXCEPTION: INVALID TSS");
+	printf("EXCEPTION: INVALID TSS\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -149,7 +149,7 @@ void eh10(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh11(){
-	printf("EXCEPTION: SEGMENT NOT PRESENT");
+	printf("EXCEPTION: SEGMENT NOT PRESENT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -163,7 +163,7 @@ void eh11(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh12(){
-	printf("EXCEPTION: STACK SEGMENT FAULT");
+	printf("EXCEPTION: STACK SEGMENT FAULT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -177,7 +177,7 @@ void eh12(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh13(){
-	printf("EXCEPTION: GENERAL PROTECTION");
+	printf("EXCEPTION: GENERAL PROTECTION\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -191,7 +191,7 @@ void eh13(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh14(){
-	printf("EXCEPTION: PAGE FAULT");
+	printf("EXCEPTION: PAGE FAULT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -205,7 +205,7 @@ void eh14(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh16(){
-	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR");
+	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -219,7 +219,7 @@ void eh16(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh17(){
-	printf("EXCEPTION: ALIGNMENT CHECK");
+	printf("EXCEPTION: ALIGNMENT CHECK\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -233,7 +233,7 @@ void eh17(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh18(){
-	printf("EXCEPTION: MACHINE CHECK");	
+	printf("EXCEPTION: MACHINE CHECK\n");	
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -247,7 +247,7 @@ void eh18(){
  * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh19(){
-	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION");
+	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
