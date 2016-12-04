@@ -1,18 +1,36 @@
 3.1 
-Initializing Paging
-	- Incorrect value for bit shift
-	- Incorrect memory address value inputted into CR0 for enable paging
+EOI sent for Slave - 10/15
+	- Needed to make sure to add EOI for the master before sending to slave
+	
+Initializing Paging - 10/16
+	- Incorrect value for bit shift for the kernel page table
+	- Incorrect memory address value inputted into CR0 to enable paging
+	- Also needed to make sure the clear the TLB in the beginning to ensure no 
+	invalid memory reads
+	
+Correct Gates for IDT - 10/16
+	- Update correct choice for either trap gates or interrrupt gates for each of the
+	entries in the idt (exceptions, interrupts, and system call)
 	
 3.2 
-Unable to open the very large text file
-	- Invalid filename trying to be read from dentries in boot block	
-	
-Invalid File Reads
+Invalid File Reads - 10/20
 	- Offset into file initilized incorrectly - updated to find correct data block
 	  and offset into data block
-	
+
+Unable to open the very large text file - 10/21
+	- Invalid filename trying to be read from dentries in boot block. Update check 
+	to ensure that correct 32 characters are compared with dentry file names.
+
+Update implementation of clear for terminal buffer - 10/21
+	- Was not correctly clearning the buffer and needed to store current contents 
+	of buffer and output back to the screen when cleared
+		
 3.3 
-Changing EBP value
+Invalid IRET context - 11/7
+	- Needed to update the interrupt flag correctly after running cli in setting
+	up the iret context (used a bit mask to enable interrupts)
+
+Changing EBP value - 11/11
 	- Changing the ebp register resulted in an incorrect read of the return value
 	stored on the stack. Needed to update the return value and eax register before 
 	updating ebp to ensure correct return value.
@@ -45,6 +63,6 @@ Page Fault when running simultaneous programs
 	- Also needed to update the current user stack for each program
 
 Updating Terminals when Switching
-	- Unaccoutning for the current page for each terminal when switching between
+	- Unaccounting for the current page for each terminal when switching between
 	terminals to correctly store video memory for each terminal
 	
