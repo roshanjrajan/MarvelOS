@@ -9,20 +9,24 @@ Initializing Paging - 10/16
 	invalid memory reads
 	
 Correct Gates for IDT - 10/16
-	- Update correct choice for either trap gates or interrrupt gates for each of the
+	- Update correct choice for either trap gates or interrupt gates for each of the
 	entries in the idt (exceptions, interrupts, and system call)
 	
 3.2 
-Invalid File Reads - 10/20
-	- Offset into file initilized incorrectly - updated to find correct data block
+Ensure that Correct Multiboot Info for File System - 10/20
+	- Update the mod->string check to ensure that current Module was guaranteed to
+	be the File system and not any other module
+	
+Invalid File Reads - 10/21
+	- Offset into file initialized incorrectly - updated to find correct data block
 	  and offset into data block
 
-Unable to open the very large text file - 10/21
+Unable to open the very large text file - 10/22
 	- Invalid filename trying to be read from dentries in boot block. Update check 
 	to ensure that correct 32 characters are compared with dentry file names.
 
-Update implementation of clear for terminal buffer - 10/21
-	- Was not correctly clearning the buffer and needed to store current contents 
+Update implementation of clear for terminal buffer - 10/22
+	- Was not correctly clearing the buffer and needed to store current contents 
 	of buffer and output back to the screen when cleared
 		
 3.3 
@@ -30,39 +34,48 @@ Invalid IRET context - 11/7
 	- Needed to update the interrupt flag correctly after running cli in setting
 	up the iret context (used a bit mask to enable interrupts)
 
+Index for System Calls - 11/8
+	- Updated the correct number for sys calls - first system call starts at 1 
+	not 0.
+	
 Changing EBP value - 11/11
 	- Changing the ebp register resulted in an incorrect read of the return value
 	stored on the stack. Needed to update the return value and eax register before 
 	updating ebp to ensure correct return value.
 
+
 3.4
-Offset for File Read
+Offset for File Read - 11/16
 	- Not fully utilizing the offset in the file read - issue was in expected
 	copy length for file. Also update for using the fdt entries for each file.
 
-Setup Directory Read
+Setup Directory Read - 11/16
 	- Invalid implementation of ls. Updated for system call ls and utilizing fdt
 	entries for directory.
-
-Index for System Calls
-	- Updated the correct number for sys calls - first system call at 1 not at 0.
-
-Needed to check Vidmap
-	- Incorrect memory address saved into *screen start - needed to update to ensure
-	that outside of kernel space but within user space.
+	
+Needed to check Vidmap - 11/17
+	- Incorrect memory address saved into *screen start 
+	- Needed to update to ensure that outside of kernel space but within user
+	space for parameter check
 
 3.5
-Fast Pingpong/Fish
-	- Speed of pingpong/fish would change when a file other than pingpong/fish
-	would be executed. Needed to make sure that the scheduler was aware of the
-	current fdt for each process and make sure to read the flags properly.
-
-Page Fault when running simultaneous programs
+Page Fault when running simultaneous programs - 12/1
 	- Not updating user page holding current user program to ensure that 
 	terminal is running the current user program. 
 	- Also needed to update the current user stack for each program
 
-Updating Terminals when Switching
-	- Unaccounting for the current page for each terminal when switching between
+Updating Terminals when Switching - 12/1
+	- Not accounting for the current page for each terminal when switching between
 	terminals to correctly store video memory for each terminal
 	
+Fast Pingpong/Fish - 12/3
+	- Speed of pingpong/fish would change when a file other than pingpong/fish
+	would be executed. Needed to make sure that the scheduler was aware of the
+	current fdt for each process and make sure to read the flags properly.
+	- Also needed to make sure that read ready flag for current thread for RTC
+	correctly updated
+	
+Exit Top Shell for each terminal - 12/3
+	- Issue for exit top shell when reinitializing the shell. Need to make sure
+	scheduler was aware that shell needed to be restarted and then the scheduler
+	would handle updating the terminal.
