@@ -1,6 +1,7 @@
 #include "RTC.h"
 
 volatile int RTC_read_flag[NUM_TERMINALS] = {0, 0, 0}; //Flag for reading if RTC interrupt has been raised
+
 /* 
  * RTCOpen
  *

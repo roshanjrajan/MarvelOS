@@ -1,6 +1,13 @@
 #include "pit.h"
 
-
+/* 
+ * PITwrapper
+ *
+ * DESCRIPTION: wrapper function for the PIT interrupt handler
+ * INPUT: NONE
+ * OUTPUT: NONE
+ * SIDE_EFFECTS: calls PIThandler
+ */
 void PITwrapper(){
 	// As interrupt, save all general purpose registers
 	asm volatile ("pusha");
@@ -14,7 +21,14 @@ void PITwrapper(){
 	asm volatile ("iret");
 }
 
-
+/* 
+ * PIThandler
+ *
+ * DESCRIPTION: Interrupt handler for the PIT
+ * INPUT: NONE
+ * OUTPUT: NONE
+ * SIDE_EFFECTS: changes the curThread and cur_pid global variables
+ */
 void PIThandler(){
 	
 	// Chck if shell has been started for current thread yet and take appropriate action
@@ -29,10 +43,7 @@ void PIThandler(){
 		sys_execute((uint8_t *)"shell");
 		return;
 	}
-	
-	//int prevT = curThread;
-	//int nextT = (curThread+1)%NUM_THREADS;
-	
+		
 	// store current esp and ebp
 	asm("movl %%esp, %0;"
 		:"=r"(ESPstore[curThread])
@@ -95,6 +106,15 @@ void PIThandler(){
 	return;
 }
 
+
+/* 
+ * PITinit
+ *
+ * DESCRIPTION: initialize the PIT device.
+ * INPUT: none.
+ * OUTPUT: none.
+ * SIDE_EFFECTS: PIT will start producing periodic interrupts 
+ */
 void PITinit(){
 	// Set up values to indicate starting thread and that no shells have been started
 	int i;

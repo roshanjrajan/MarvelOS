@@ -16,11 +16,8 @@
 #define RESERVED_20 20
 #define USR_DPL 3
 
-
-
 // IDT FUNCTIONS
 extern void init_idt();
-
 
 #endif
 

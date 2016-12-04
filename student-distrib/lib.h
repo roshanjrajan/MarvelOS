@@ -7,6 +7,7 @@
 
 #include "types.h"
 
+//General Constants
 #define ERROR_VAL -1
 #define VIDEO 0xB8000
 #define NUM_TERMINALS 3
@@ -17,7 +18,7 @@
 #define ARG_SIZE 128
 #define NUM_THREADS 3
 
-// Structs used
+// PDE Struct
 typedef union pde_desc_t {
 	uint32_t val;
 	struct {
@@ -35,6 +36,7 @@ typedef union pde_desc_t {
 	} __attribute__((packed));
 } pde_desc_t;
 
+// Fops Table Struct
 typedef	struct __attribute__((packed)) fops_table
 {
 	int32_t (*open)(const uint8_t*);
@@ -43,6 +45,7 @@ typedef	struct __attribute__((packed)) fops_table
 	int32_t (*write)(int32_t, const void*, int32_t);
 } fops_table_t;
 
+//File descriptor entry struct
 typedef struct __attribute__((packed)) file_descriptor_entry
 {
 	fops_table_t * fops_pointer;
@@ -51,6 +54,7 @@ typedef struct __attribute__((packed)) file_descriptor_entry
 	uint32_t flags;
 } file_descriptor_entry_t;
 
+//PCB Block struct
 typedef struct __attribute__((packed)) PCB {
 	int32_t pid;
 	int32_t parent_pid;
@@ -70,9 +74,8 @@ volatile int curThread;
 PCB_t* PCB_ptrs[MAX_PROCESSES];
 volatile int cur_pid;
 volatile uint8_t currentTerminal;
-int screen_x[NUM_TERMINALS];
-int screen_y[NUM_TERMINALS];
 
+//Standard functions
 int32_t printf(int8_t *format, ...);
 void KBputc(uint8_t c);
 void putc(uint8_t c);
@@ -83,6 +86,8 @@ uint32_t strlen(const int8_t* s);
 void clear(void);
 
 void set_cursor(int x, int y);
+int screen_x[NUM_TERMINALS];
+int screen_y[NUM_TERMINALS];
 void text_shift_up(int terminalNum);
 void erase_char();
 void back_char();

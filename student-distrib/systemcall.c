@@ -1,13 +1,20 @@
 #include "systemcall.h"
 
-
+/* 
+ * switchTerminal
+ *
+ * DESCRIPTION: Switches the terminal that is displayed
+ * INPUT: uint8_t previousTerminal - the previous terminal that we are switching from
+ * OUTPUT: returns 0 for success and -1 for invalid terminal indices
+ * SIDE_EFFECTS: changes the display video memory and video memory of previous terminal
+ */
 int32_t switchTerminal(uint8_t previousTerminal) {
 	//Make sure we have valid new terminal index 
 	if(previousTerminal > TERMINAL_2 || currentTerminal > TERMINAL_2) {
 		return ERROR_VAL;
 	}
 
-
+	//CLI and Save to mask interrupts
 	unsigned int flags;
 	cli_and_save(flags);
 	
@@ -24,8 +31,10 @@ int32_t switchTerminal(uint8_t previousTerminal) {
 	user_page_table[USER_VIDEO_MEM_INDEX + previousTerminal].physical_address = (VIDEO_4KB_ALIGNED_ADDRESS +  (previousTerminal + 1) * FOUR_KB) >> PDE_PTE_ADDRESS_SHIFT;
 	user_page_table[USER_VIDEO_MEM_INDEX + currentTerminal].physical_address = VIDEO_4KB_ALIGNED_ADDRESS >> PDE_PTE_ADDRESS_SHIFT;
 
+	//Make sure to flush the TLB
 	clearTLB();
-	restore_flags(flags);
+
+		restore_flags(flags);
 
 	return 0;
 }

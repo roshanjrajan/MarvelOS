@@ -40,7 +40,7 @@ typedef union pte_desc_t {
 } pte_desc_t;
 
 
-// Paging Directory and Table
+// Paging Directory and Tables
 pde_desc_t page_directory[NUM_PAGE_TABLES] __attribute__((aligned(SIZE_4KB_PAGE)));
 pte_desc_t kernel_page_table[NUM_PAGES_IN_TABLE] __attribute__((aligned(SIZE_4KB_PAGE)));
 pte_desc_t user_page_table[NUM_PAGES_IN_TABLE] __attribute__((aligned(SIZE_4KB_PAGE)));
@@ -51,6 +51,5 @@ extern void enablePaging(void);
 extern void enableMixedSizes(void);
 extern void clearTLB(void);
 extern void init_paging(void);
-
 
 #endif

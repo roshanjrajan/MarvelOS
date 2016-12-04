@@ -4,6 +4,7 @@
 #include "lib.h"
 #include "i8259.h"
 
+//General RTC constants
 #define INIT_FREQ 2
 #define MIN_FREQ 2
 #define MAX_FREQ 1024
@@ -20,7 +21,7 @@
 #define RTC_C 0x0c
 #define BIT8 0x80
 
-
+//RTC Functions
 extern int32_t RTCOpen(const uint8_t* filename);
 extern int32_t RTCRead(int32_t fd, void* buf, int32_t nbytes);
 extern int32_t RTCWrite(int32_t fd, const void* buf, int32_t nbytes);
