@@ -2,153 +2,154 @@
 
 /*
  * eh0
- * DESCRIPTION: Exception handler 0 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 0 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh0(){
-	printf("EXCEPTION: DIVIDE ERROR");
+	printf("EXCEPTION: DIVIDE ERROR\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh2
- * DESCRIPTION: Exception handler 2 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 2 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh2(){
-	printf("EXCEPTION: NMI INTERRUPT");
+	printf("EXCEPTION: NMI INTERRUPT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh3
- * DESCRIPTION: Exception handler 3 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 3 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh3(){
-	printf("EXCEPTION: BREAKPOINT");
+	printf("EXCEPTION: BREAKPOINT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh4
- * DESCRIPTION: Exception handler 4 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 4 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh4(){
-	printf("EXCEPTION: OVERFLOW");
+	printf("EXCEPTION: OVERFLOW\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh5
- * DESCRIPTION: Exception handler 5 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 5 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh5(){
-	printf("EXCEPTION: BOUND RANGE EXCEEDED");
+	printf("EXCEPTION: BOUND RANGE EXCEEDED\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh6
- * DESCRIPTION: Exception handler 6 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 6 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh6(){
-	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE");
+	printf("EXCEPTION: INVALID OR UNDEFINED OPCODE\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh7
- * DESCRIPTION: Exception handler 7 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 7 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh7(){
-	printf("EXCEPTION: DEVICE NOT AVAILABLE");
+	printf("EXCEPTION: DEVICE NOT AVAILABLE\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh8
- * DESCRIPTION: Exception handler 8 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine* INPUT: none.
+ * DESCRIPTION: Exception handler 8 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
+ * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh8(){
-	printf("EXCEPTION: DOUBLE FAULT");
+	printf("EXCEPTION: DOUBLE FAULT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh9
- * DESCRIPTION: Exception handler 9 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 9 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh9(){
-	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN");
+	printf("EXCEPTION: COPROCESSOR SEGMENT OVERRUN\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh10
- * DESCRIPTION: Exception handler 10 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 10 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh10(){
-	printf("EXCEPTION: INVALID TSS");
+	printf("EXCEPTION: INVALID TSS\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
 
 /*
  * eh11
- * DESCRIPTION: Exception handler 11 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * DESCRIPTION: Exception handler 11 as specified in the IDT.
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh11(){
-	printf("EXCEPTION: SEGMENT NOT PRESENT");
+	printf("EXCEPTION: SEGMENT NOT PRESENT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -156,13 +157,13 @@ void eh11(){
 /*
  * eh12
  * DESCRIPTION: Exception handler 12 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh12(){
-	printf("EXCEPTION: STACK SEGMENT FAULT");
+	printf("EXCEPTION: STACK SEGMENT FAULT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -170,13 +171,13 @@ void eh12(){
 /*
  * eh13
  * DESCRIPTION: Exception handler 13 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh13(){
-	printf("EXCEPTION: GENERAL PROTECTION");
+	printf("EXCEPTION: GENERAL PROTECTION\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -184,24 +185,13 @@ void eh13(){
 /*
  * eh14
  * DESCRIPTION: Exception handler 14 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh14(){
-	printf("EXCEPTION: PAGE FAULT");
-
-	uint32_t* cr2_val;
-	asm("movl %%cr2, %0;"
-		:"=r"(cr2_val)
-		:
-		:"memory");
-	printf("\nCR2_val:           %x", cr2_val);
-	while(1);
-
-
-
+	printf("EXCEPTION: PAGE FAULT\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -209,13 +199,13 @@ void eh14(){
 /*
  * eh16
  * DESCRIPTION: Exception handler 16 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh16(){
-	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR");
+	printf("EXCEPTION: X87 FPU FLOATING POINT ERROR\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -223,13 +213,13 @@ void eh16(){
 /*
  * eh17
  * DESCRIPTION: Exception handler 17 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh17(){
-	printf("EXCEPTION: ALIGNMENT CHECK");
+	printf("EXCEPTION: ALIGNMENT CHECK\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -237,13 +227,13 @@ void eh17(){
 /*
  * eh18
  * DESCRIPTION: Exception handler 18 as specified in the IDT
- * mask interrupts, infinite while loop to freeze machine
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh18(){
-	printf("EXCEPTION: MACHINE CHECK");	
+	printf("EXCEPTION: MACHINE CHECK\n");	
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }
@@ -251,12 +241,13 @@ void eh18(){
 /*
  * eh19
  * DESCRIPTION: Exception handler 19 as specified in the IDT
+ * Sets PCB exception flag for process and calls halt
  * INPUT: none.
  * OUTPUT: none.
- * SIDE_EFFECTS: none.
+ * SIDE_EFFECTS: Calls halt with value 255 and sets process PCB flag.
  */
 void eh19(){
-	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION");
+	printf("EXCEPTION: SIMD FLOATING POINT EXCEPTION\n");
 	PCB_ptrs[cur_pid]->exception_flag = 1;
 	sys_halt(255);
 }

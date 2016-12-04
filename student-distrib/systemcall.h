@@ -51,12 +51,14 @@
 #define EXECUTABLE_FOURTH_BYTE 0x46
 #define EXECUTABLE_INSTRUCTION_START_BYTE 24
 
-// Functions used
+//File system functions
+int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
+int32_t directoryOpen(const uint8_t* filename);
+
+// Process Handling Functions
 extern void switch_to_user_mode(uint32_t starting_addr);
 extern void initialize_FDT(int32_t pid);
 extern void initialize_PCB_pointers();
-int32_t fileRead(int32_t fd, void * buf, int32_t nbytes);
-int32_t directoryOpen(const uint8_t* filename);
 void initialize_fops();
 
 //System call dispatcher function
@@ -74,18 +76,16 @@ extern int32_t sys_vidmap (uint8_t** screen_start);
 extern int32_t sys_sethandler (int32_t signum, void* handler_address);
 extern int32_t sys_sigreturn (void);
 
-
+//global process handling variables
 uint32_t shellStarted[NUM_THREADS];	// 1 = started, 0 = not started
+file_descriptor_entry_t * fdt;
+uint32_t eax_val;
 
 //dummy functions
 int32_t dummy_read (int32_t fd, void* buf, int32_t nbytes);
 int32_t dummy_write (int32_t fd, const void* buf, int32_t nbytes);
 int32_t dummy_open (const uint8_t* filename);
 int32_t dummy_close (int32_t fd);
-
-// Global variables used
-file_descriptor_entry_t * fdt;
-uint32_t eax_val;
 
 //Here are our fops tables
 fops_table_t stdin_fops;

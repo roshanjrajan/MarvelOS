@@ -8,6 +8,7 @@
 
 .text
 
+#some global functions
 .globl loadPageDirectory
 .globl enablePaging
 .globl enableMixedSizes

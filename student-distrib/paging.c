@@ -56,7 +56,7 @@ void init_paging() {
 		kernel_page_table[i].present = 0;
 	}
 
-	/* initialize the pages in the page table for video memory entries */
+	/* initialize the pages in the kernel page table for video memory entries for display and each terminal*/
 	for(i=0; i<=NUM_TERMINALS; i++) {
 		kernel_page_table[VIDEO_MEM_INDEX+ i].physical_address = (VIDEO_4KB_ALIGNED_ADDRESS + i * FOUR_KB) >> PDE_PTE_ADDRESS_SHIFT;
 		kernel_page_table[VIDEO_MEM_INDEX+ i].open_bits = 0;

@@ -26,12 +26,10 @@ static char ascii_scan[ALL_SCODES] = {
 	'b', 'n', 'm', '<', '>', '?', 0, 0, 0, ' ', 0, 0, 0, 0, 0, 0
 };
 
-/*
- * Keyboard buffer array
- */
-char KBbuf [NUM_TERMINALS] [BUF_SIZE];
+char KBbuf [NUM_TERMINALS] [BUF_SIZE]; //Keyboard buffer array
+int buf_loc[NUM_TERMINALS]; //Location of next character in the buffer
 
-int buf_loc[NUM_TERMINALS];
+//Flags for indicating if various buttons are pressed
 int capsFlag;
 int shiftFlagL;
 int shiftFlagR;
@@ -39,6 +37,8 @@ int ctrlFlagL;
 int ctrlFlagR;
 int altFlagL;
 int altFlagR;
+
+//Arrays to indicate if each terminal is ready or waiting to read
 int readWaiting[NUM_TERMINALS];
 int readReady[NUM_TERMINALS];
 
