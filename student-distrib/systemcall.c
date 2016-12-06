@@ -89,9 +89,9 @@ int32_t directoryRead(int32_t fd, void * buf, int32_t nbytes){
 	if(read_dentry_by_index (fdt[fd].file_position, &dentry) != 0)
 		return ERROR_VAL; // Done with all of them
 		
-	strncpy((int8_t* )buf, (const int8_t*)(dentry.fileName), (uint32_t) MAX_FILENAME_LENGTH);
+	uint32_t bytesCopied = strcpyFile((int8_t* )buf, (const int8_t*)(dentry.fileName), (uint32_t) MAX_FILENAME_LENGTH);
 	fdt[fd].file_position++;
-	return MAX_FILENAME_LENGTH;
+	return bytesCopied;
 }
 
 
